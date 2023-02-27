@@ -285,6 +285,11 @@ impl Arguments {
   //   Ok(())
   // }
 
+  /**Function unpacks the AnalysisResults struct into a vec so user does not have to manually extract data from 82 fields.
+   * Params:
+   *  d: AnalysisResult {The struct to unpack}
+   * Returns Vec<AVProvider>
+   */
   pub fn get_av_provider_data(d: AnalysisResults) -> Vec<AVProvider> {
     let mut out: Vec<AVProvider> = Default::default();
 
@@ -430,14 +435,7 @@ impl Arguments {
             let import_table = Self::get_imports(&imports);
             println!("{import_table}");
           }
-
-          // if self.pjson == true {
-          //   Self::test_parse_json();
-          // }
-
-          // virus_total_search(hash.as_str());
         }
-
       },
 
       Object::Mach(_) => {},
@@ -461,14 +459,16 @@ impl Arguments {
                                   .build().unwrap().request(Method::GET, base_url)
                                   .header("x-apikey", apikey);
     
-    // println!("{:#?}", builder);
     let request = builder.send().unwrap();
     let text = request.text().unwrap();
 
+    // Deserialize the json object in another thread.
     let (tx, rx) = std::sync::mpsc::channel::<VtJsonOutput>();
     std::thread::spawn(Box::new(move || {
       match serde_json::from_str::<VtJsonOutput>(&text) {
         Ok(s) => {
+
+          // Send the results back to the main thread.
           match tx.send(s) {
             Ok(_) => {},
             Err(e) => {
@@ -482,6 +482,7 @@ impl Arguments {
       }
     }));
 
+    // receive the data.
     let mut output_data = VtJsonOutput::default();
     match rx.recv() {
       Ok(s) => {
@@ -490,6 +491,7 @@ impl Arguments {
       Err(e) => {}
     }
     
+    // Setup a table.
     let mut table = Table::new();
     table.set_header(vec![
       Cell::from("Av_Engine").fg(Color::Yellow),
@@ -500,6 +502,7 @@ impl Arguments {
       Cell::from("Engine_Update").fg(Color::Magenta),
     ]);
 
+    // Unpack the AnalysisResult struct and construct the table.
     let av = Self::get_av_provider_data(output_data.data.attributes.last_analysis_results);
     for i in av {
       let c_av = Cell::from(i.engine_name).fg(Color::Yellow);
