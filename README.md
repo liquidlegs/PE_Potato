@@ -1,5 +1,4 @@
 # PE_Potato
----
 
 PE_Potato is a PE/ELF binary analyzer.
 
