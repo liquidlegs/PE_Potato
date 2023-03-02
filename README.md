@@ -16,7 +16,6 @@ However, this will change over time.
 
 ## Planned features
 - A modern GUI
-
 - View strings
 - View debug info
 - View the optional header
