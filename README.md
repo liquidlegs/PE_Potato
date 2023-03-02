@@ -10,14 +10,15 @@ However, this will change over time.
 - View imported functions
 - View libraries
 - Query the binary's hash via virus total
+- View sections
+- View the DOS header
+- View the file header
 
 ## Planned features
 - A modern GUI
-- View sections
+
 - View strings
 - View debug info
-- View the DOS header
 - View the optional header
-- View the file header
 - View the manifest
 - View version info
