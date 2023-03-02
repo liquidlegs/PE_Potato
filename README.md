@@ -1,5 +1,9 @@
 # PE_Potato
 
+[![ pe1 ](/assets/pe1.png)]
+[![ pe2 ](/assets/pe2.png)]
+[![ pe3 ](/assets/pe3.png)]
+
 PE_Potato is a PE/ELF binary analyzer.
 
 As the project as still very early in development, it does offer very basic functionaility.

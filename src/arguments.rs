@@ -419,7 +419,8 @@ impl Arguments {
   pub fn get_coff_header(header: CoffHeader) -> Table {
     let mut table = Table::new();
     table.add_row(vec![
-      Cell::from("Characteristics"),
+      Cell::from("Header_Name"),
+      Cell::from("Characteristics").fg(Color::Blue),
       Cell::from("Machine Type").fg(Color::Green),
       Cell::from("Number_Of_Sections").fg(Color::DarkYellow),
       Cell::from("Number_Of_Symbols").fg(Color::DarkCyan),
@@ -429,7 +430,8 @@ impl Arguments {
     ]);
 
     table.add_row(vec![
-      Cell::from(format!("0x{:x}", header.characteristics)),
+      Cell::from("COFF_Header"),
+      Cell::from(format!("0x{:x}", header.characteristics)).fg(Color::Blue),
       Cell::from(format!("0x{:x}", header.machine)).fg(Color::Green),
       Cell::from(header.number_of_sections).fg(Color::DarkYellow),
       Cell::from(header.number_of_symbol_table).fg(Color::DarkCyan),
