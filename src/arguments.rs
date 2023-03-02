@@ -1,10 +1,17 @@
 use clap::Parser;
 use console::style;
 use goblin::Object;
+use goblin::pe::header::{DosHeader, CoffHeader};
+use goblin::pe::optional_header::OptionalHeader;
+use goblin::pe::section_table::SectionTable;
 use goblin::pe::{
   export::Export,
   import::Import,
 };
+use std::fs::File;
+use std::io::Read;
+use std::os::raw::c_void;
+use std::os::windows::prelude::FromRawHandle;
 use std::path::Path;
 use std::{
   fs::read,
@@ -181,109 +188,21 @@ pub struct Arguments {
   /// imported functions.
   pub imports: bool,
 
-  // #[clap(short, long, default_value_if("pjson", Some("false"), Some("true")), min_values(0))]
-  // pub pjson: bool,
+  #[clap(short, long, default_value_if("sections", Some("false"), Some("true")), min_values(0))]
+  /// Sections
+  pub sections: bool,
+
+  #[clap(long = "Dh", default_value_if("Dh", Some("false"), Some("true")), min_values(0))]
+  pub dos_header: bool,
+
+  #[clap(long = "Oh", default_value_if("Oh", Some("false"), Some("true")), min_values(0))]
+  pub optional_header: bool,
+  
+  #[clap(long = "Ch", default_value_if("Ch", Some("false"), Some("true")), min_values(0))]
+  pub coff_header: bool,
 }
 
 impl Arguments {
-
-  // pub fn test_parse_json() -> std::io::Result<()> {
-  //   let path = Path::new("C:\\users\\nath\\Documents\\request2.json");
-  //   let bytes = std::fs::read(path)?;
-
-  //   let byte_string = String::from_utf8(bytes).unwrap();
-  //   let (tx, rx) = std::sync::mpsc::channel::<VtJsonOutput>();
-
-  //   std::thread::spawn(Box::new(move || {
-  //     match serde_json::from_str::<VtJsonOutput>(&byte_string) {
-  //       Ok(s) => {
-  //         match tx.send(s) {
-  //           Ok(_) => {},
-  //           Err(e) => {
-  //             println!("{e}");
-  //           }
-  //         }
-  //       },
-  //       Err(e) => {
-  //         println!("{e}");
-  //       }
-  //     }
-  //   }));
-
-  //   let mut output_data = VtJsonOutput::default();
-  //   match rx.recv() {
-  //     Ok(s) => {
-  //       output_data = s;
-  //     },
-  //     Err(e) => {}
-  //   }
-    
-  //   let mut table = Table::new();
-  //   table.set_header(vec![
-  //     Cell::from("Av_Engine").fg(Color::Yellow),
-  //     Cell::from("Category").fg(Color::Green),
-  //     Cell::from("Result").fg(Color::Red),
-  //     Cell::from("Version").fg(Color::DarkCyan),
-  //     Cell::from("Method").fg(Color::DarkYellow),
-  //     Cell::from("Engine_Update").fg(Color::Magenta),
-  //   ]);
-
-  //   let mut av = Self::get_av_provider_data(output_data.data.attributes.last_analysis_results);
-  //   for i in av {
-  //     let c_av = Cell::from(i.engine_name).fg(Color::Yellow);
-  //     let c_method = Cell::from(i.method).fg(Color::DarkYellow);
-  //     let c_update = Cell::from(i.engine_update).fg(Color::Magenta);
-      
-  //     let category = i.category;
-  //     let mut result = String::from("None");
-  //     let mut version = String::from("None");
-      
-  //     let mut c_category = Cell::from(category.clone());
-  //     let mut c_result = Cell::from(result.clone());
-  //     let mut c_version = Cell::from(version.clone());
-
-  //     if let Some(r) = i.result {
-  //       result.clear();
-  //       result.push_str(r.as_str());
-  //     }
-
-  //     if let Some(v) = i.engine_version {
-  //       version.clear();
-  //       version.push_str(v.as_str());
-  //     }
-
-  //     match category.as_str() {
-  //       "type-unsupported" => { c_category = Cell::from(category).fg(Color::Blue); }
-  //       "undetected" =>       { c_category = Cell::from(category).fg(Color::Green); }
-  //       "malicious" =>        { c_category = Cell::from(category).fg(Color::Red); }
-  //       _ => {}
-  //     }
-
-  //     match result.as_str() {
-  //       "None" => {}
-  //       _ => { c_result = Cell::from(result).fg(Color::Red); }
-  //     }
-
-  //     match version.as_str() {
-  //       "None" => {}
-  //       _ => { c_version = Cell::from(version).fg(Color::DarkCyan); }
-  //     }
-
-  //     let row = Row::from(vec![
-  //       c_av,
-  //       c_category,
-  //       c_result,
-  //       c_version,
-  //       c_method,
-  //       c_update,
-  //     ]);
-
-  //     table.add_row(row);
-  //   }
-
-  //   println!("{table}");
-  //   Ok(())
-  // }
 
   /**Function unpacks the AnalysisResults struct into a vec so user does not have to manually extract data from 82 fields.
    * Params:
@@ -378,13 +297,19 @@ impl Arguments {
    * Returns Result<()>
    */
   pub fn display_data(&self, bytes: Vec<u8>, settings: &mut CmdSettings, sh_everything: bool) -> goblin::error::Result<()> {
+    // let c_bytes = bytes.clone();
+
     match Object::parse(&bytes)? {
       Object::Elf(_) => {},
       
       Object::PE(pe) => {
         let imports = pe.imports;
         let exports = pe.exports;
-        
+        let sections = pe.sections;      
+        let dos_header = pe.header.dos_header;
+        let coff_header = pe.header.coff_header;
+        let optional_header = pe.header.optional_header;
+
         Self::load_config_file(settings).unwrap();
         if sh_everything == true {
           let export_table = Self::get_exports(&exports);
@@ -435,6 +360,24 @@ impl Arguments {
             let import_table = Self::get_imports(&imports);
             println!("{import_table}");
           }
+
+          if self.sections == true {
+            Self::get_section_data(sections);
+          }
+
+          if self.dos_header == true {
+            let dos_header_tb = Self::get_dos_header(dos_header);
+            println!("{dos_header_tb}");
+          }
+
+          if self.coff_header == true {
+            let coff_header_tb = Self::get_coff_header(coff_header);
+            println!("{coff_header_tb}");
+          }
+
+          if self.optional_header == true {
+            Self::get_optional_header(optional_header);
+          }
         }
       },
 
@@ -444,6 +387,116 @@ impl Arguments {
     }
 
     Ok(())
+  }
+
+  /**Function returns information stored in the dos header.
+   * Params:
+   *  header: DosHeader {The dos header}
+   * Returns Table
+   */
+  pub fn get_dos_header(header: DosHeader) -> Table {
+    let mut table = Table::new();
+    table.set_header(vec![
+      Cell::from("Header_Name").fg(Color::Green),
+      Cell::from("Header_Offset").fg(Color::DarkCyan),
+      Cell::from("Signature").fg(Color::DarkYellow),
+    ]);
+
+    table.add_row(vec![
+      Cell::from("DOS_Header").fg(Color::Green),
+      Cell::from(format!("0x{:x}", header.pe_pointer)).fg(Color::DarkCyan),
+      Cell::from(format!("0x{:x}", header.signature)).fg(Color::DarkYellow),
+    ]);
+
+    table
+  }
+
+  /**Function returns information about the coff_header.
+   * Params:
+   *  header: CoffHeader {The CoffHeader}
+   * Returns Table
+   */
+  pub fn get_coff_header(header: CoffHeader) -> Table {
+    let mut table = Table::new();
+    table.add_row(vec![
+      Cell::from("Characteristics"),
+      Cell::from("Machine Type").fg(Color::Green),
+      Cell::from("Number_Of_Sections").fg(Color::DarkYellow),
+      Cell::from("Number_Of_Symbols").fg(Color::DarkCyan),
+      Cell::from("Symbol_Address_Table").fg(Color::Red),
+      Cell::from("Optional_Header_Size").fg(Color::Cyan),
+      Cell::from("Timestamp").fg(Color::Yellow),
+    ]);
+
+    table.add_row(vec![
+      Cell::from(format!("0x{:x}", header.characteristics)),
+      Cell::from(format!("0x{:x}", header.machine)).fg(Color::Green),
+      Cell::from(header.number_of_sections).fg(Color::DarkYellow),
+      Cell::from(header.number_of_symbol_table).fg(Color::DarkCyan),
+      Cell::from(format!("0x{:x}", header.pointer_to_symbol_table)).fg(Color::Red),
+      Cell::from(format!("0x{:x} ({} bytes)", header.size_of_optional_header, header.size_of_optional_header)).fg(Color::Cyan),
+      Cell::from(header.time_date_stamp).fg(Color::Yellow),
+    ]);
+
+    table
+  }
+
+  /**Function returns information about the optional_header.
+   * Params:
+   *  header: Option<OptionalHeader> {The optional header}
+   * Returns Table
+   */
+  pub fn get_optional_header(header: Option<OptionalHeader>) -> () {
+    if let Some(h) = header {
+      println!("Not Implemented");
+    }
+  }
+
+  /**Function displays information about each section header in the form of a table.
+   * Params:
+   *  sections: Vec<SectionTable> {The headers and information to be displayed}
+   * Returns Table
+   */
+  pub fn get_section_data(sections: Vec<SectionTable>) -> Table {
+    let mut table = Table::new();
+
+    table.set_header(vec![
+      Cell::from("Name"), 
+      Cell::from("Characteristics").fg(Color::Green), 
+      Cell::from("Virtual_Address").fg(Color::DarkCyan),
+      Cell::from("Virtual_Size").fg(Color::DarkYellow), 
+      Cell::from("Raw_Address").fg(Color::Cyan),
+      Cell::from("Raw_Size").fg(Color::Red),
+    ]);
+
+    for i in sections.clone() {
+      let mut section_name = "";
+      
+      match i.name() {
+        Ok(s) => {
+          section_name = s;
+        },
+        Err(e) => {}
+      }
+
+      let mut ptr_rw_data = String::new();
+      match i.pointer_to_raw_data {
+        0 => { ptr_rw_data.push_str("None"); }
+        _ => { ptr_rw_data.push_str(format!("{:?}", i.pointer_to_raw_data as *const u32).as_str()); }
+      }
+
+      table.add_row(vec![
+        Cell::from(section_name), 
+        Cell::from(format!("0x{:x}", i.characteristics)).fg(Color::Green), 
+        Cell::from(format!("0x{:x}", i.virtual_address)).fg(Color::DarkCyan),
+        Cell::from(format!("{:x} ({} bytes)", i.virtual_size, i.virtual_size)).fg(Color::DarkYellow), 
+        Cell::from(ptr_rw_data).fg(Color::Cyan),
+        Cell::from(format!("{:x} ({} bytes)",i.size_of_raw_data, i.size_of_raw_data)).fg(Color::Red), 
+      ]);
+    }
+
+    println!("{table}");
+    table
   }
 
   /**Function makes a GET reuqest to the virus total api query a hash for the input file.
