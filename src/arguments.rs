@@ -641,9 +641,6 @@ impl Arguments {
   pub fn get_optional_header(header: Option<OptionalHeader>) -> Option<Table> {
     if let Some(h) = header {
 
-      println!("{:#?}", h.data_directories.data_directories);
-      let test = goblin::pe::header::Header::default().optional_header.unwrap().data_directories;
-
       let mut labels: Vec<&str> = Default::default();
       labels.push("magic");
       labels.push("major_linker_version");
