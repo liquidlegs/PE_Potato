@@ -376,7 +376,14 @@ impl Arguments {
           }
 
           if self.optional_header == true {
-            Self::get_optional_header(optional_header);
+            match Self::get_optional_header(optional_header) {
+              Some(table) => {
+                println!("{table}");
+              }
+              None => {
+                println!("Could not read header");
+              }
+            }
           }
         }
       },
@@ -446,12 +453,81 @@ impl Arguments {
   /**Function returns information about the optional_header.
    * Params:
    *  header: Option<OptionalHeader> {The optional header}
-   * Returns Table
+   * Returns Option<Table>
    */
-  pub fn get_optional_header(header: Option<OptionalHeader>) -> () {
+  pub fn get_optional_header(header: Option<OptionalHeader>) -> Option<Table> {
     if let Some(h) = header {
-      println!("Not Implemented");
+
+      let mut labels: Vec<&str> = Default::default();
+      labels.push("check_sum");
+      labels.push("dll_characteristics");
+      labels.push("file_alignment");
+      labels.push("image_base");
+      labels.push("loader_flags");
+      labels.push("major_image_version");
+      labels.push("major_operating_system_version");
+      labels.push("major_subsystem_version");
+      labels.push("minor_image_version");
+      labels.push("minor_operating_system_version");
+      labels.push("minor_subsystem_version");
+      labels.push("number_of_rva_and_sizes");
+      labels.push("section_alignment");
+      labels.push("size_of_headers");
+      labels.push("size_of_heap_commit");
+      labels.push("size_of_heap_reserve");
+      labels.push("size_of_image");
+      labels.push("size_of_stack_commit");
+      labels.push("size_of_stack_reserve");
+      labels.push("subsystem");
+      labels.push("win32_version_value");
+
+      let mut table = Table::new();
+      let mut label_string = String::new();
+      let mut value_string = String::new();
+
+      for i in labels.clone() {
+        label_string.push_str(format!("{}\n", i).as_str());
+      }
+
+      label_string.pop();
+
+      let mut values: Vec<String> = Default::default();
+      values.push(format!("0x{:x}\n", h.windows_fields.check_sum));
+      values.push(format!("0x{:x}\n", h.windows_fields.dll_characteristics));
+      values.push(format!("0x{:x}\n", h.windows_fields.file_alignment));
+      values.push(format!("0x{:x}\n", h.windows_fields.image_base));
+      values.push(format!("0x{:x}\n", h.windows_fields.loader_flags));
+      values.push(format!("{}\n", h.windows_fields.major_image_version));
+      values.push(format!("{}\n", h.windows_fields.major_operating_system_version));
+      values.push(format!("{}\n", h.windows_fields.major_subsystem_version));
+      values.push(format!("{}\n", h.windows_fields.minor_image_version));
+      values.push(format!("{}\n", h.windows_fields.minor_operating_system_version));
+      values.push(format!("{}\n", h.windows_fields.minor_subsystem_version));
+      values.push(format!("{}\n", h.windows_fields.number_of_rva_and_sizes));
+      values.push(format!("{}\n", h.windows_fields.section_alignment));
+      values.push(format!("{} bytes\n", h.windows_fields.size_of_headers));
+      values.push(format!("{} bytes\n", h.windows_fields.size_of_heap_commit));
+      values.push(format!("{} bytes\n", h.windows_fields.size_of_heap_reserve));
+      values.push(format!("{} bytes\n", h.windows_fields.size_of_image));
+      values.push(format!("{} bytes\n", h.windows_fields.size_of_stack_commit));
+      values.push(format!("{} bytes\n", h.windows_fields.size_of_stack_reserve));
+      values.push(format!("{}\n", h.windows_fields.subsystem));
+      values.push(format!("0x{:x}", h.windows_fields.win32_version_value));
+
+      for i in values.clone() {
+        value_string.push_str(i.as_str());
+      }
+
+      let row = Row::from(vec![
+        Cell::from(label_string).fg(Color::DarkCyan),
+        Cell::from(value_string).fg(Color::Yellow),
+      ]);
+
+      table.add_row(row);
+      return Some(table);
     }
+
+    None
   }
 
   /**Function displays information about each section header in the form of a table.
