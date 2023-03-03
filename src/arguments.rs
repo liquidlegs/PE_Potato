@@ -458,7 +458,19 @@ impl Arguments {
   pub fn get_optional_header(header: Option<OptionalHeader>) -> Option<Table> {
     if let Some(h) = header {
 
+      println!("{:#?}", h.standard_fields);
+      
       let mut labels: Vec<&str> = Default::default();
+      labels.push("magic");
+      labels.push("major_linker_version");
+      labels.push("minor_linker_version");
+      labels.push("size_of_code");
+      labels.push("size_of_initialized_data");
+      labels.push("size_of_uninitialized_data");
+      labels.push("address_of_entry_point");
+      labels.push("base_of_code");
+      labels.push("base_of_data");
+
       labels.push("check_sum");
       labels.push("dll_characteristics");
       labels.push("file_alignment");
@@ -492,6 +504,15 @@ impl Arguments {
       label_string.pop();
 
       let mut values: Vec<String> = Default::default();
+      values.push(format!("{}\n", h.standard_fields.magic));
+      values.push(format!("{}\n", h.standard_fields.major_linker_version));
+      values.push(format!("{}\n", h.standard_fields.minor_linker_version));
+      values.push(format!("{} bytes\n", h.standard_fields.size_of_code));
+      values.push(format!("{} bytes\n", h.standard_fields.size_of_initialized_data));
+      values.push(format!("{} bytes\n", h.standard_fields.size_of_uninitialized_data));
+      values.push(format!("0x{:x}\n", h.standard_fields.address_of_entry_point));
+      values.push(format!("0x{:x}\n", h.standard_fields.base_of_code));
+      values.push(format!("0x{:x}\n", h.standard_fields.base_of_data));
       values.push(format!("0x{:x}\n", h.windows_fields.check_sum));
       values.push(format!("0x{:x}\n", h.windows_fields.dll_characteristics));
       values.push(format!("0x{:x}\n", h.windows_fields.file_alignment));
