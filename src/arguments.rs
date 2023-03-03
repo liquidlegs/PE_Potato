@@ -1,6 +1,7 @@
 use clap::Parser;
 use console::style;
 use goblin::Object;
+use goblin::pe::data_directories::DataDirectories;
 use goblin::pe::header::{DosHeader, CoffHeader};
 use goblin::pe::optional_header::OptionalHeader;
 use goblin::pe::section_table::SectionTable;
@@ -8,6 +9,7 @@ use goblin::pe::{
   export::Export,
   import::Import,
 };
+use goblin::strtab::Strtab;
 use std::fs::File;
 use std::io::Read;
 use std::os::raw::c_void;
@@ -150,6 +152,13 @@ pub struct AnalysisResults {
   Avast: Option<AVProvider>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct DataDirectoryInfo {
+  pub name: String,
+  pub size: u32,
+  pub virtual_address: u32,
+}
+
 #[derive(Deserialize, Debug, Default)]
 #[allow(dead_code)]
 pub struct AVProvider {
@@ -200,6 +209,9 @@ pub struct Arguments {
   
   #[clap(long = "Ch", default_value_if("Ch", Some("false"), Some("true")), min_values(0))]
   pub coff_header: bool,
+
+  #[clap(short, long, default_value_if("directories", Some("false"), Some("true")), min_values(0))]
+  pub directories: bool,
 }
 
 impl Arguments {
@@ -309,6 +321,7 @@ impl Arguments {
         let dos_header = pe.header.dos_header;
         let coff_header = pe.header.coff_header;
         let optional_header = pe.header.optional_header;
+        // let string_table = coff_header.strings(&c_bytes);
 
         Self::load_config_file(settings).unwrap();
         if sh_everything == true {
@@ -385,6 +398,18 @@ impl Arguments {
               }
             }
           }
+
+          if self.directories == true {
+            match optional_header.clone() {
+              Some(h) => {
+                let table = Self::get_data_directories(h.data_directories);
+                println!("{table}");
+              }
+              None => {
+                println!("Could not read data directories");
+              }
+            }
+          }
         }
       },
 
@@ -450,6 +475,164 @@ impl Arguments {
     table
   }
 
+  /**Function creates vec of data directories with their names, sizes and virtual addresses.
+   * Params:
+   *  dir: DataDirectories {The data directories to check}
+   * Returns Vec<DataDirectoryInfo>
+   */
+  pub fn get_data_directories(dir: DataDirectories) -> Table {
+    let mut table = Table::new();
+    table.set_header(vec![
+      Cell::from("Name").fg(Color::DarkCyan),
+      Cell::from("Size").fg(Color::Yellow),
+      Cell::from("Virtual_Address").fg(Color::Yellow),
+    ]);
+
+    let mut label_string = String::new();
+    let mut size_string = String::new();
+    let mut rva_string = String::new();
+
+    let mut directories: Vec<DataDirectoryInfo> = Default::default();
+    let mut arch = DataDirectoryInfo::default();
+    let mut realloc = DataDirectoryInfo::default();
+    let mut bound_import = DataDirectoryInfo::default();
+    let mut certificate = DataDirectoryInfo::default();
+    let mut clr_runtime_header = DataDirectoryInfo::default();
+    let mut debug = DataDirectoryInfo::default();
+    let mut delay_import_desc = DataDirectoryInfo::default();
+    let mut except = DataDirectoryInfo::default();
+    let mut export = DataDirectoryInfo::default();
+    let mut global_ptr = DataDirectoryInfo::default();
+    let mut import_addr = DataDirectoryInfo::default();
+    let mut import = DataDirectoryInfo::default();
+    let mut load_config = DataDirectoryInfo::default();
+    let mut resource = DataDirectoryInfo::default();
+    let mut tls = DataDirectoryInfo::default();
+
+    if let Some(d) = dir.get_architecture() {
+      arch.name.push_str("architecture");
+      arch.size = d.size;
+      arch.virtual_address =d.virtual_address;
+      directories.push(arch);
+    }
+
+    if let Some(d) = dir.get_base_relocation_table() {
+      realloc.name.push_str("relocation");
+      realloc.size = d.size;
+      realloc.virtual_address =d.virtual_address;
+      directories.push(realloc);
+    }
+
+    if let Some(d) = dir.get_bound_import_table() {
+      bound_import.name.push_str("bound_import");
+      bound_import.size = d.size;
+      bound_import.virtual_address =d.virtual_address;
+      directories.push(bound_import);
+    }
+
+    if let Some(d) = dir.get_certificate_table() {
+      certificate.name.push_str("certificate");
+      certificate.size = d.size;
+      certificate.virtual_address =d.virtual_address;
+      directories.push(certificate);
+    }
+
+    if let Some(d) = dir.get_clr_runtime_header() {
+      clr_runtime_header.name.push_str("clr_runtime_header");
+      clr_runtime_header.size = d.size;
+      clr_runtime_header.virtual_address =d.virtual_address;
+      directories.push(clr_runtime_header);
+    }
+
+    if let Some(d) = dir.get_debug_table() {
+      debug.name.push_str("debug");
+      debug.size = d.size;
+      debug.virtual_address =d.virtual_address;
+      directories.push(debug);
+    }
+
+    if let Some(d) = dir.get_delay_import_descriptor() {
+      delay_import_desc.name.push_str("delay_import");
+      delay_import_desc.size = d.size;
+      delay_import_desc.virtual_address =d.virtual_address;
+      directories.push(delay_import_desc);
+    }
+
+    if let Some(d) = dir.get_exception_table() {
+      except.name.push_str("exception");
+      except.size = d.size;
+      except.virtual_address =d.virtual_address;
+      directories.push(except);
+    }
+
+    if let Some(d) = dir.get_export_table() {
+      export.name.push_str("export");
+      export.size = d.size;
+      export.virtual_address =d.virtual_address;
+      directories.push(export);
+    }
+
+    if let Some(d) = dir.get_global_ptr() {
+      global_ptr.name.push_str("global_ptr");
+      global_ptr.size = d.size;
+      global_ptr.virtual_address =d.virtual_address;
+      directories.push(global_ptr);
+    }
+
+    if let Some(d) = dir.get_import_address_table() {
+      import_addr.name.push_str("import_address");
+      import_addr.size = d.size;
+      import_addr.virtual_address =d.virtual_address;
+      directories.push(import_addr);
+    }
+
+    if let Some(d) = dir.get_import_table() {
+      import.name.push_str("import");
+      import.size = d.size;
+      import.virtual_address =d.virtual_address;
+      directories.push(import);
+    }
+
+    if let Some(d) = dir.get_load_config_table() {
+      load_config.name.push_str("load_config");
+      load_config.size = d.size;
+      load_config.virtual_address =d.virtual_address;
+      directories.push(load_config);
+    }
+
+    if let Some(d) = dir.get_resource_table() {
+      resource.name.push_str("resource");
+      resource.size = d.size;
+      resource.virtual_address =d.virtual_address;
+      directories.push(resource);
+    }
+
+    if let Some(d) = dir.get_tls_table() {
+      tls.name.push_str("tls");
+      tls.size = d.size;
+      tls.virtual_address =d.virtual_address;
+      directories.push(tls);
+    }
+
+    for i in directories.clone() {
+      label_string.push_str(format!("{}\n", i.name).as_str());
+      size_string.push_str(format!("0x{:x} ({} bytes)\n", i.size, i.size).as_str());
+      rva_string.push_str(format!("0x{:x}\n", i.virtual_address).as_str());
+    }
+
+    label_string.pop();
+    size_string.pop();
+    rva_string.pop();
+
+    table.add_row(vec![
+      Cell::from(label_string).fg(Color::DarkCyan),
+      Cell::from(size_string).fg(Color::Yellow),
+      Cell::from(rva_string).fg(Color::Yellow),
+    ]);
+
+    table
+  }
+
   /**Function returns information about the optional_header.
    * Params:
    *  header: Option<OptionalHeader> {The optional header}
@@ -458,8 +641,9 @@ impl Arguments {
   pub fn get_optional_header(header: Option<OptionalHeader>) -> Option<Table> {
     if let Some(h) = header {
 
-      println!("{:#?}", h.standard_fields);
-      
+      println!("{:#?}", h.data_directories.data_directories);
+      let test = goblin::pe::header::Header::default().optional_header.unwrap().data_directories;
+
       let mut labels: Vec<&str> = Default::default();
       labels.push("magic");
       labels.push("major_linker_version");
