@@ -16,6 +16,8 @@ However, this will change over time.
 - View sections
 - View the DOS header
 - View the file header
+- View the COFF header
+- View Directories
 
 ## Planned features
 - A modern GUI
