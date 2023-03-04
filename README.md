@@ -23,6 +23,5 @@ However, this will change over time.
 - A modern GUI
 - View strings
 - View debug info
-- View the optional header
 - View the manifest
 - View version info
