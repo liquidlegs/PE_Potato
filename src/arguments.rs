@@ -9,11 +9,6 @@ use goblin::pe::{
   export::Export,
   import::Import,
 };
-use goblin::strtab::Strtab;
-use std::fs::File;
-use std::io::Read;
-use std::os::raw::c_void;
-use std::os::windows::prelude::FromRawHandle;
 use std::path::Path;
 use std::{
   fs::read,
@@ -50,19 +45,19 @@ impl CmdSettings {
 #[derive(Deserialize, Debug, Default)]
 #[allow(dead_code)]
 pub struct VtJsonOutput {
-  data: VtData,
+  data: Option<VtData>,
 }
 
 #[derive(Deserialize, Debug, Default)]
 #[allow(dead_code)]
 pub struct VtData {
-  attributes: VtAttributes,
+  attributes: Option<VtAttributes>,
 }
 
 #[derive(Deserialize, Debug, Default)]
 #[allow(dead_code)]
 pub struct VtAttributes {
-  last_analysis_results: AnalysisResults,
+  last_analysis_results: Option<AnalysisResults>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -162,12 +157,12 @@ pub struct DataDirectoryInfo {
 #[derive(Deserialize, Debug, Default)]
 #[allow(dead_code)]
 pub struct AVProvider {
-  category: String,
-  engine_name: String,
+  category: Option<String>,
+  engine_name: Option<String>,
   engine_version: Option<String>,
   result: Option<String>,
-  method: String,
-  engine_update: String,
+  method: Option<String>,
+  engine_update: Option<String>,
 }
 
 #[derive(Debug, Clone, Parser)]
@@ -198,20 +193,28 @@ pub struct Arguments {
   pub imports: bool,
 
   #[clap(short, long, default_value_if("sections", Some("false"), Some("true")), min_values(0))]
-  /// Sections
+  /// Display info about the section headers
   pub sections: bool,
 
   #[clap(long = "Dh", default_value_if("Dh", Some("false"), Some("true")), min_values(0))]
+  /// Display info about the DOS header
   pub dos_header: bool,
 
   #[clap(long = "Oh", default_value_if("Oh", Some("false"), Some("true")), min_values(0))]
+  /// Display info about the optional header
   pub optional_header: bool,
   
   #[clap(long = "Ch", default_value_if("Ch", Some("false"), Some("true")), min_values(0))]
+  /// Display info about the COFF header
   pub coff_header: bool,
 
   #[clap(short, long, default_value_if("directories", Some("false"), Some("true")), min_values(0))]
+  /// Display info about directories and tables
   pub directories: bool,
+
+  #[clap(long, default_value_if("gui", Some("false"), Some("true")), min_values(0))]
+  /// Displays a test gui
+  pub gui: bool,
 }
 
 impl Arguments {
@@ -309,10 +312,27 @@ impl Arguments {
    * Returns Result<()>
    */
   pub fn display_data(&self, bytes: Vec<u8>, settings: &mut CmdSettings, sh_everything: bool) -> goblin::error::Result<()> {
-    // let c_bytes = bytes.clone();
+    Self::load_config_file(settings).unwrap();
+
+    let vt_search = || -> std::io::Result<()> {
+      if self.vt == true {
+        if settings.auto_search_vt.clone() == false {
+          println!("{}: Virus Total search must be enabled in the config file", style("Error").red().bright());
+        }
+
+        else {
+          println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
+          Self::search_virus_total(&settings.file_hash, &settings.api_key.as_str())?;
+        }
+      }
+
+      Ok(())
+    };
 
     match Object::parse(&bytes)? {
-      Object::Elf(_) => {},
+      Object::Elf(_) => {
+        vt_search()?;
+      },
       
       Object::PE(pe) => {
         let imports = pe.imports;
@@ -321,9 +341,8 @@ impl Arguments {
         let dos_header = pe.header.dos_header;
         let coff_header = pe.header.coff_header;
         let optional_header = pe.header.optional_header;
-        // let string_table = coff_header.strings(&c_bytes);
 
-        Self::load_config_file(settings).unwrap();
+        // Self::load_config_file(settings).unwrap();
         if sh_everything == true {
           let export_table = Self::get_exports(&exports);
           println!("{export_table}");
@@ -334,30 +353,11 @@ impl Arguments {
           let import_table = Self::get_imports(&imports);
           println!("{import_table}");
 
-          if self.vt == true {
-            if settings.auto_search_vt.clone() == false {
-              println!("{}: Virus Total search must be enabled in the config file", style("Error").red().bright());
-            }
-
-            else {
-              println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
-              Self::search_virus_total(&settings.file_hash, &settings.api_key.as_str())?;
-            }
-          }
+          vt_search()?;
         }
 
         else {
-
-          if self.vt == true {
-            if settings.auto_search_vt.clone() == false {
-              println!("{}: Virus Total search must be enabled in the config file", style("Error").red().bright());
-            }
-
-            else {
-              println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
-              Self::search_virus_total(&settings.file_hash, &settings.api_key.as_str())?;
-            }
-          }
+          vt_search()?;
 
           if self.exports == true {
             let export_table = Self::get_exports(&exports);
@@ -413,9 +413,9 @@ impl Arguments {
         }
       },
 
-      Object::Mach(_) => {},
-      Object::Archive(_) => {},
-      Object::Unknown(magic) => { println!("unknown magic: {:#x}", magic) }
+      Object::Mach(_) => { vt_search()?; },
+      Object::Archive(_) => { vt_search()?; },
+      Object::Unknown(_) => { vt_search()?; }
     }
 
     Ok(())
@@ -836,19 +836,46 @@ impl Arguments {
     ]);
 
     // Unpack the AnalysisResult struct and construct the table.
-    let av = Self::get_av_provider_data(output_data.data.attributes.last_analysis_results);
+    let mut av: Vec<AVProvider> = Default::default();
+    let mut matches = false;
+
+    if let Some(o) = output_data.data {
+      if let Some(att) = o.attributes {
+        if let Some(results) = att.last_analysis_results {
+          av = Self::get_av_provider_data(results);
+          matches = true;
+        }
+      }
+    }
+
     for i in av {
-      let c_av = Cell::from(i.engine_name).fg(Color::Yellow);
-      let c_method = Cell::from(i.method).fg(Color::DarkYellow);
-      let c_update = Cell::from(i.engine_update).fg(Color::Magenta);
       
-      let category = i.category;
+      let mut av = String::from("None");
+      let mut method = String::from("None");
+      let mut update = String::from("None");
+      let mut category = String::from("None");
       let mut result = String::from("None");
       let mut version = String::from("None");
-      
-      let mut c_category = Cell::from(category.clone());
-      let mut c_result = Cell::from(result.clone());
-      let mut c_version = Cell::from(version.clone());
+
+      if let Some(a) = i.engine_name {
+        av.clear();
+        av.push_str(a.as_str());
+      }
+
+      if let Some(m) = i.method {
+        method.clear();
+        method.push_str(m.as_str());
+      }
+
+      if let Some(u) = i.engine_update {
+        update.clear();
+        update.push_str(u.as_str());
+      }
+
+      if let Some(c) = i.category {
+        category.clear();
+        category.push_str(c.as_str());
+      }
 
       if let Some(r) = i.result {
         result.clear();
@@ -860,6 +887,28 @@ impl Arguments {
         version.push_str(v.as_str());
       }
 
+      let mut c_av = Cell::from(av.clone());
+      let mut c_method = Cell::from(method.clone());
+      let mut c_update = Cell::from(update.clone());
+      let mut c_category = Cell::from(category.clone());
+      let mut c_result = Cell::from(result.clone());
+      let mut c_version = Cell::from(version.clone());
+
+      match av.as_str() {
+        "None" => {}
+        _ => { c_av = Cell::from(av.clone()).fg(Color::Yellow); }
+      }
+
+      match method.as_str() {
+        "None" => {}
+        _ => { c_method = Cell::from(method.clone()).fg(Color::DarkYellow); }
+      }
+
+      match update.as_str() {
+        "None" => {}
+        _ => { c_update = Cell::from(update.clone()).fg(Color::Magenta); }
+      }
+      
       match category.as_str() {
         "type-unsupported" => { c_category = Cell::from(category).fg(Color::Blue); }
         "undetected" =>       { c_category = Cell::from(category).fg(Color::Green); }
@@ -889,7 +938,14 @@ impl Arguments {
       table.add_row(row);
     }
 
-    println!("{table}");
+    if matches == true {
+      println!("{table}");
+    }
+
+    else {
+      println!("No matches found");
+    }
+
     Ok(())
   }
 
@@ -958,7 +1014,7 @@ impl Arguments {
     println!("{}: {}", style("Exports").cyan(), style(exports.len()).yellow().bright());
     table.set_header(
       vec![
-        Cell::from("Name").fg(Color::Green), 
+        Cell::from("Export_Name").fg(Color::Green), 
         Cell::from("Offset").fg(Color::DarkCyan), 
         Cell::from("RVA").fg(Color::DarkYellow),
       ]
@@ -975,10 +1031,10 @@ impl Arguments {
       }
       
       if let Some(off) = i.offset {
-        offsets.push_str(format!("0x{off}\n").as_str());
+        offsets.push_str(format!("0x{:x}\n", off).as_str());
       }
   
-      rvas.push_str(format!("0x{}\n", i.rva).as_str());
+      rvas.push_str(format!("0x{:x}\n", i.rva).as_str());
     }
   
     export_names.pop();
@@ -1006,10 +1062,11 @@ impl Arguments {
 
     table.set_header(
       vec![
-        Cell::from("Name").fg(Color::Green),
+        Cell::from("Import_Name").fg(Color::Green),
         Cell::from("DLL").fg(Color::DarkCyan),
         Cell::from("Offset").fg(Color::DarkYellow),
         Cell::from("RVA").fg(Color::Red),
+        Cell::from("Ordinal").fg(Color::Yellow),
       ]
     );
 
@@ -1017,18 +1074,21 @@ impl Arguments {
     let mut dll_names = String::new();
     let mut offsets = String::new();
     let mut rvas = String::new();
+    let mut ord = String::new();
 
     for i in imports {
       names.push_str(format!("{}\n", i.name).as_str());
       dll_names.push_str(format!("{}\n", i.dll).as_str());
-      offsets.push_str(format!("{}\n", i.offset).as_str());
-      rvas.push_str(format!("{}\n", i.offset).as_str());
+      offsets.push_str(format!("0x{:x}\n", i.offset).as_str());
+      rvas.push_str(format!("0x{:x}\n", i.rva).as_str());
+      ord.push_str(format!("0x{:x}\n", i.ordinal).as_str());
     }
 
     names.pop();
     dll_names.pop();
     offsets.pop();
     rvas.pop();
+    ord.pop();
 
     table.add_row(
       Row::from(vec![
@@ -1036,6 +1096,7 @@ impl Arguments {
         Cell::from(dll_names).fg(Color::DarkCyan),
         Cell::from(offsets).fg(Color::DarkYellow),
         Cell::from(rvas).fg(Color::Red),
+        Cell::from(ord).fg(Color::Yellow),
       ])
     );
 
