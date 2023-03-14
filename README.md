@@ -25,3 +25,15 @@ However, this will change over time.
 - View debug info
 - View the manifest
 - View version info
+- Query Virus Total for:
+  - Basic Propeties
+  - History
+  - Binary Names
+  - Compiler Products
+  - Pe Header
+  - Sections
+  - Imports
+  - Contained Resources By Type
+  - Contained Resources By Language
+  - Contained Resources
+  - Other malicious payload information
