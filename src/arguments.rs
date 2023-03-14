@@ -17,7 +17,9 @@ use comfy_table::{Table, Cell, Row, Color};
 use reqwest::{
   blocking::ClientBuilder, Method
 };
-use serde::Deserialize;
+
+mod av_json;
+use av_json::*;
 
 mod config_options {
   pub const CONFIG_FILE: &str = "config.conf";
@@ -42,127 +44,11 @@ impl CmdSettings {
   }
 }
 
-#[derive(Deserialize, Debug, Default)]
-#[allow(dead_code)]
-pub struct VtJsonOutput {
-  data: Option<VtData>,
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[allow(dead_code)]
-pub struct VtData {
-  attributes: Option<VtAttributes>,
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[allow(dead_code)]
-pub struct VtAttributes {
-  last_analysis_results: Option<AnalysisResults>,
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[allow(dead_code, non_snake_case)]
-pub struct AnalysisResults {
-  Bkav: Option<AVProvider>,
-  Lionic: Option<AVProvider>,
-  Elastic: Option<AVProvider>,
-  DrWeb: Option<AVProvider>,
-  #[serde(rename = "MicroWorld-eScan")]
-  MicroWorld_eScan: Option<AVProvider>,
-  CMC: Option<AVProvider>,
-  #[serde(rename = "CAT-QuickHeal")]
-  CAT_QuickHeal: Option<AVProvider>,
-  McAfee: Option<AVProvider>,
-  Cylance: Option<AVProvider>,
-  VIPRE: Option<AVProvider>,
-  Sangfor: Option<AVProvider>,
-  K7AntiVirus: Option<AVProvider>,
-  Alibaba: Option<AVProvider>,
-  K7GW: Option<AVProvider>,
-  CrowdStrike: Option<AVProvider>,
-  Arcabit: Option<AVProvider>,
-  BitDefenderTheta: Option<AVProvider>,
-  VirIT: Option<AVProvider>,
-  Cyren: Option<AVProvider>,
-  SymantecMobileInsight: Option<AVProvider>,
-  Symantec: Option<AVProvider>,
-  tehtris: Option<AVProvider>,
-  #[serde(rename = "ESET-NOD32")]
-  ESET_NOD32: Option<AVProvider>,
-  APEX: Option<AVProvider>,
-  Paloalto: Option<AVProvider>,
-  ClamAV: Option<AVProvider>,
-  Kaspersky: Option<AVProvider>,
-  BitDefender: Option<AVProvider>,
-  #[serde(rename = "NANO-Antivirus")]
-  NANO_Antivirus: Option<AVProvider>,
-  SUPERAntiSpyware: Option<AVProvider>,
-  Tencent: Option<AVProvider>,
-  Trustlook: Option<AVProvider>,
-  TACHYON: Option<AVProvider>,
-  #[serde(rename = "F-Secure")]
-  F_Secure: Option<AVProvider>,
-  Baidu: Option<AVProvider>,
-  Zillya: Option<AVProvider>,
-  TrendMicro: Option<AVProvider>,
-  #[serde(rename = "McAfee-GW-Edition")]
-  McAfee_GW_Edition: Option<AVProvider>,
-  Trapmine: Option<AVProvider>,
-  FireEye: Option<AVProvider>,
-  Sophos: Option<AVProvider>,
-  SentinelOne: Option<AVProvider>,
-  #[serde(rename = "Avast-Mobile")]
-  Avast_Mobile: Option<AVProvider>,
-  Jiangmin: Option<AVProvider>,
-  Webroot: Option<AVProvider>,
-  Avira: Option<AVProvider>,
-  #[serde(rename = "Antiy-AVL")]
-  Antiy_AVL: Option<AVProvider>,
-  Kingsoft: Option<AVProvider>,
-  Gridinsoft: Option<AVProvider>,
-  Xcitium: Option<AVProvider>,
-  Microsoft: Option<AVProvider>,
-  ViRobot: Option<AVProvider>,
-  ZoneAlarm: Option<AVProvider>,
-  GData: Option<AVProvider>,
-  Google: Option<AVProvider>,
-  BitDefenderFalx: Option<AVProvider>,
-  #[serde(rename = "AhnLab-V3")]
-  AhnLab_V3: Option<AVProvider>,
-  Acronis: Option<AVProvider>,
-  VBA32: Option<AVProvider>,
-  ALYac: Option<AVProvider>,
-  MAX: Option<AVProvider>,
-  Panda: Option<AVProvider>,
-  Zoner: Option<AVProvider>,
-  #[serde(rename = "TrendMicro-HouseCall")]
-  TrendMicro_HouseCall: Option<AVProvider>,
-  Rising: Option<AVProvider>,
-  Yandex: Option<AVProvider>,
-  Ikarus: Option<AVProvider>,
-  MaxSecure: Option<AVProvider>,
-  Fortinet: Option<AVProvider>,
-  AVG: Option<AVProvider>,
-  Cybereason: Option<AVProvider>,
-  Avast: Option<AVProvider>,
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct DataDirectoryInfo {
   pub name: String,
   pub size: u32,
   pub virtual_address: u32,
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[allow(dead_code)]
-pub struct AVProvider {
-  category: Option<String>,
-  engine_name: Option<String>,
-  engine_version: Option<String>,
-  result: Option<String>,
-  method: Option<String>,
-  engine_update: Option<String>,
 }
 
 #[derive(Debug, Clone, Parser)]
@@ -226,7 +112,6 @@ impl Arguments {
    */
   pub fn get_av_provider_data(d: AnalysisResults) -> Vec<AVProvider> {
     let mut out: Vec<AVProvider> = Default::default();
-
     if let Some(d) = d.Bkav                   { out.push(d); }
     if let Some(d) = d.Lionic                 { out.push(d); }
     if let Some(d) = d.Elastic                { out.push(d); }
