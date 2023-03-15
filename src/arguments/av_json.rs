@@ -163,13 +163,13 @@ pub struct DotNetAsm {
 #[derive(Deserialize, Debug, Default)]
 #[allow(dead_code)]
 pub struct VtAttributes {
-  pub elf_info:                       Option<ElfInfo>,
-  pub dot_net_assembly:               Option<DotNetAsm>,
+  // pub elf_info:                       Option<ElfInfo>,
+  // pub dot_net_assembly:               Option<DotNetAsm>,
   pub type_description:               Option<String>,
   pub tlsh:                           Option<String>,
   pub vhash:                          Option<String>,
   pub trid:                           Option<Vec<Trid>>,
-  pub crowdsourced_yara_results:      Option<CrowdSrcYara>,
+  // pub crowdsourced_yara_results:      Option<CrowdSrcYara>,
   pub creation_date:                  Option<f64>,
   pub names:                          Option<Vec<String>>,
   pub last_modification_date:         Option<f64>,
@@ -198,7 +198,7 @@ pub struct VtAttributes {
   pub magic:                          Option<String>,
   pub last_analysis_stats:            Option<LastAnalysisStats>,
   pub last_analysis_results:          Option<AnalysisResults>,
-  pub reputation:                     Option<usize>,
+  pub reputation:                     Option<i32>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -313,7 +313,7 @@ pub struct VtSection {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Trid {
-  pub file_type:    Option<String>,
+  pub file_type:    String,
   pub probability:  Option<f32>,
 }
 
@@ -325,12 +325,13 @@ pub struct TotalVotes {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CrowdSrcYara {
-  pub description:    Option<String>,
-  pub source:         Option<String>,
-  pub author:         Option<String>,
-  pub ruleset_name:   Option<String>,
-  pub rule_name:      Option<String>,
-  pub ruleset_id:     Option<String>,
+  pub description:          Option<String>,
+  pub source:               Option<String>,
+  pub author:               Option<String>,
+  pub match_in_subfile:     Option<bool>,
+  pub ruleset_name:         Option<String>,
+  pub rule_name:            Option<String>,
+  pub ruleset_id:           Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

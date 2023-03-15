@@ -10,6 +10,7 @@ use goblin::pe::{
   import::Import,
 };
 use std::path::Path;
+use std::str::Split;
 use std::{
   fs::read,
 };
@@ -98,9 +99,9 @@ pub struct Arguments {
   /// Display info about directories and tables
   pub directories: bool,
 
-  #[clap(long, default_value_if("gui", Some("false"), Some("true")), min_values(0))]
-  /// Displays a test gui
-  pub gui: bool,
+  #[clap(short, long, default_value_if("general-info", Some("false"), Some("true")), min_values(0))]
+  /// Combines results from virus total and resulting from parsing the binary
+  pub general_info: bool,
 }
 
 impl Arguments {
@@ -188,6 +189,259 @@ impl Arguments {
     out
   }
 
+  /**Function queries virus total for general info about the sample.
+   * Params:
+   *  hash_id:  &str {The hash of the sample}
+   *  apikey:   &str {The virus total api key}
+   *  cpu:      bool {Tells us whether the cpu is 64 or 32}
+   * Returns nothing
+   */
+  pub fn get_general_info(hash_id: &str, apikey: &str, cpu: bool) -> () {
+    let mut table = Table::new();
+    let mut section_table = Table::new();
+    let text = Self::query_virus_total(hash_id, apikey);
+
+    // Deserialize the json object in another thread.
+    let (tx, rx) = std::sync::mpsc::channel::<VtJsonOutput>();
+    std::thread::spawn(Box::new(move || {
+      match serde_json::from_str::<VtJsonOutput>(&text) {
+        Ok(s) => {
+
+          // Send the results back to the main thread.
+          match tx.send(s) {
+            Ok(_) => {},
+            Err(e) => {
+              println!("{e}");
+            }
+          }
+        },
+        Err(e) => {
+          println!("{e}");
+        }
+      }
+    }));
+
+    // receive the data.
+    let mut output_data = VtJsonOutput::default();
+    match rx.recv() {
+      Ok(s) => {
+        output_data = s;
+      },
+      Err(e) => {}
+    }
+
+    let mut names = String::new();
+    let mut bin_size: usize = 0;
+    let mut filetype = String::new();
+    let mut arch = String::new();
+    let mut subsys = String::new();
+    let mut comp = String::new();
+    let mut pack = String::new();
+    let mut entropy: f32 = 0.0;
+    let mut family = String::new();
+    let mut md5_hash = String::new();
+    let mut sha256 = String::new();
+    let mut detections: usize = 0;
+    let mut no_detections: usize = 0;
+
+    let mut detect_it_easy = DetectItEasy::default();
+    let mut pe_info = PeInfo::default();
+    let mut stats = LastAnalysisStats::default();
+    let mut engines = AnalysisResults::default();
+    let mut sections: Vec<VtSection> = Default::default();
+    let mut families: Vec<String> = Default::default();
+
+    let mut providers = Self::get_av_provider_data(engines);
+    if providers.len() > 0 {
+      for i in providers {
+        let mut category = String::new();
+        
+        if let Some(cat) = i.category {
+          category.push_str(cat.as_str());
+        }
+
+        match category.as_str() {
+          "malicious" => {
+            if let Some(r) = i.result {
+              families.push(r);
+            }
+          }
+
+          _ => {}
+        }
+      }
+    }
+
+    families.sort();
+    families.dedup();
+    
+    let mut count: usize = 0;
+    for i in families {
+      if count >= 5 { break; }
+      
+      family.push_str(i.as_str());
+      count += 1;
+    }
+
+    match cpu {
+      true =>   { arch.push_str("64-bit"); }
+      false =>  { arch.push_str("32-bit"); }
+    }
+
+    if let Some(data) = output_data.data {
+      if let Some(att) = data.attributes {
+        if let Some(name) = att.names {
+          names.push_str(name[0].as_str());
+        }
+
+        if let Some(size) = att.size {
+          bin_size = size;
+        }
+
+        if let Some(md5) = att.md5 {
+          md5_hash.push_str(md5.as_str());
+        }
+
+        if let Some(sha) = att.sha256 {
+          sha256.push_str(sha.as_str());
+        }
+
+        if let Some(detect) = att.detectiteasy {
+          detect_it_easy = detect;
+        }
+
+        if let Some(pe) = att.pe_info {
+          pe_info = pe;
+          
+          if let Some(s) = pe_info.sections {
+            sections = s;
+          }
+        }
+
+        if let Some(av) = att.last_analysis_stats {
+          stats = av;
+        }
+
+        if let Some(res) = att.last_analysis_results {
+          engines = res;
+        }
+      }
+    }
+
+    if let Some(ovr) = pe_info.overlay {
+      if let Some(e) = ovr.entropy {
+        entropy = e;
+      }
+    }
+
+    if let Some(file) = detect_it_easy.filetype {
+      filetype.push_str(file.as_str());
+    }
+
+    if let Some(values) = detect_it_easy.values {
+      for i in values {
+        
+        if let Some(t) = i._type {
+          match t.as_str() {
+            "compiler" => {
+              comp.push_str(t.as_str());
+            }
+
+            "packer" => {
+              pack.push_str(t.as_str());
+            }
+
+            _ => {}
+          }
+        }
+
+        if let Some(inf) = i.info {
+          subsys.push_str(inf.as_str());
+          subsys.push(' ');
+        }
+      }
+    }
+
+    if let Some(av) = stats.malicious {
+      detections = av;
+    }
+
+    if let Some(av) = stats.undetected {
+      no_detections = av;
+    }
+
+    let mut label_col = String::new();
+    let mut value_col = String::new();
+
+    label_col.push_str(
+      format!("FileName\nFileSize\nFileType\nCpu\nSubsystem\nCompiler\nPacker\nSections\nEntropy\nFamily\nDetected\nUndetected\nMD5\nSHA256").as_str()
+    );
+
+    value_col.push_str(
+      format!("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}", 
+      names, bin_size, filetype, arch, subsys, comp, pack, 0, entropy, family, detections, no_detections, md5_hash, sha256).as_str()
+    );
+
+    table.add_row(vec![
+      Cell::from(label_col).fg(Color::Yellow),
+      Cell::from(value_col).fg(Color::DarkCyan),
+    ]);
+
+    section_table.set_header(vec![
+      Cell::from("Name").fg(Color::Yellow),
+      Cell::from("Virtual Address").fg(Color::Yellow),
+      Cell::from("Virtual Size").fg(Color::Yellow),
+      Cell::from("Raw Size").fg(Color::Yellow),
+      Cell::from("Entropy").fg(Color::Yellow),
+      Cell::from("MD5").fg(Color::Yellow),
+    ]);
+
+    for i in sections {
+      let mut name = String::new();
+      let mut va: usize = 0;
+      let mut vs: usize = 0;
+      let mut size: usize = 0;
+      let mut entropy: f32 = 0.0;
+      let mut md5 = String::new();
+
+      if let Some(n) = i.name {
+        name.push_str(n.as_str());
+      }
+
+      if let Some(virt_a) = i.virtual_address {
+        va = virt_a;
+      }
+
+      if let Some(vsize) = i.virtual_size {
+        vs = vsize;
+      }
+
+      if let Some(rs) = i.raw_size {
+        size = rs;
+      }
+
+      if let Some(e) = i.entropy {
+        entropy = e;
+      }
+
+      if let Some(m) = i.md5 {
+        md5.push_str(m.as_str());
+      }
+      
+      section_table.add_row(vec![
+        Cell::from(name).fg(Color::Red),
+        Cell::from(format!("0x{:X}", va)).fg(Color::Red),
+        Cell::from(format!("0x{:X}", vs)).fg(Color::Red),
+        Cell::from(format!("{size}")).fg(Color::Red),
+        Cell::from(format!("{entropy}")).fg(Color::Red),
+        Cell::from(format!("{md5}")).fg(Color::Red),
+      ]);
+    }
+
+    println!("{table}");
+    println!("{section_table}");
+  }
+
   /**Function displays all data contained in the load file or just some of it in a table as specified by the user.
    * Params:
    *  &self
@@ -198,6 +452,8 @@ impl Arguments {
    */
   pub fn display_data(&self, bytes: Vec<u8>, settings: &mut CmdSettings, sh_everything: bool) -> goblin::error::Result<()> {
     Self::load_config_file(settings).unwrap();
+    let mut cpu = false;
+    let c_cpu = cpu.clone();
 
     let vt_search = || -> std::io::Result<()> {
       if self.vt == true {
@@ -211,6 +467,17 @@ impl Arguments {
         }
       }
 
+      else if self.general_info == true {
+        if settings.auto_search_vt.clone() == false {
+          println!("{}: Virus Total search must be enabled in the config file", style("Error").red().bright());
+        }
+
+        else {
+          println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
+          Self::get_general_info(&settings.file_hash, &settings.api_key, c_cpu);
+        }
+      }
+
       Ok(())
     };
 
@@ -220,6 +487,7 @@ impl Arguments {
       },
       
       Object::PE(pe) => {
+        cpu = pe.is_64;
         let imports = pe.imports;
         let exports = pe.exports;
         let sections = pe.sections;      
@@ -664,13 +932,8 @@ impl Arguments {
     table
   }
 
-  /**Function makes a GET reuqest to the virus total api query a hash for the input file.
-   * Params:
-   *  hash_id: &str {The file hash}
-   *  apikey: &str  {The Virus Total api key}
-   * Returns nothing
-   */
-  pub fn search_virus_total(hash_id: &str, apikey: &str) -> std::io::Result<()> {
+
+  pub fn query_virus_total(hash_id: &str, apikey: &str) -> String {
     let base_url = format!("https://www.virustotal.com/api/v3/files/{hash_id}");
   
     let builder = ClientBuilder::new()
@@ -679,6 +942,18 @@ impl Arguments {
     
     let request = builder.send().unwrap();
     let text = request.text().unwrap();
+
+    text
+  }
+
+  /**Function makes a GET reuqest to the virus total api query a hash for the input file.
+   * Params:
+   *  hash_id: &str {The file hash}
+   *  apikey: &str  {The Virus Total api key}
+   * Returns nothing
+   */
+  pub fn search_virus_total(hash_id: &str, apikey: &str) -> std::io::Result<()> {
+    let text = Self::query_virus_total(hash_id, apikey);
 
     // Deserialize the json object in another thread.
     let (tx, rx) = std::sync::mpsc::channel::<VtJsonOutput>();
