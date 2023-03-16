@@ -385,13 +385,6 @@ impl Arguments {
     let mut s_md5 = String::new();
 
     for i in sections {
-      let mut name = String::new();
-      let mut va: usize = 0;
-      let mut vs: usize = 0;
-      let mut size: usize = 0;
-      let mut entropy: f32 = 0.0;
-      let mut md5 = String::new();
-
       if let Some(n) = i.name {
         s_names.push_str(format!("{n}\n").as_str());
       }
