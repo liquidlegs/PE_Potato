@@ -231,7 +231,7 @@ impl Arguments {
       Ok(s) => {
         output_data = s;
       },
-      Err(e) => {}
+      Err(_) => {}
     }
 
     let mut names = String::new();
@@ -252,10 +252,8 @@ impl Arguments {
     let mut detect_it_easy = DetectItEasy::default();
     let mut pe_info = PeInfo::default();
     let mut stats = LastAnalysisStats::default();
-    let mut engines = AnalysisResults::default();
     let mut sections: Vec<VtSection> = Default::default();
-    let mut families: Vec<String> = Default::default();
-
+    
     if let Some(data) = output_data.data {
       if let Some(att) = data.attributes {
         if let Some(name) = att.names {
@@ -291,43 +289,12 @@ impl Arguments {
           stats = av;
         }
 
-        if let Some(res) = att.last_analysis_results {
-          engines = res;
-        }
-      }
-    }
-
-    // Av engines 
-    let mut providers = Self::get_av_provider_data(engines);
-    if providers.len() > 0 {
-      for i in providers {
-        let mut category = String::new();
-        
-        if let Some(cat) = i.category {
-          category.push_str(cat.as_str());
-        }
-
-        match category.as_str() {
-          "malicious" => {
-            if let Some(r) = i.result {
-              families.push(r);
-            }
+        if let Some(threat) = att.popular_threat_classification {
+          if let Some(label) = threat.suggested_threat_label {
+            family.push_str(label.as_str());
           }
-
-          _ => {}
         }
       }
-    }
-
-    families.sort();
-    families.dedup();
-    
-    let mut count: usize = 0;
-    for i in families {
-      if count >= 3 { break; }
-      
-      family.push_str(i.as_str());
-      count += 1;
     }
 
     if let Some(ovr) = pe_info.overlay {
