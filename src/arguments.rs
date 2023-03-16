@@ -377,6 +377,13 @@ impl Arguments {
       Cell::from("MD5").fg(Color::Yellow),
     ]);
 
+    let mut s_names = String::new();
+    let mut s_va = String::new();
+    let mut s_vs = String::new();
+    let mut s_size = String::new();
+    let mut s_entropy = String::new();
+    let mut s_md5 = String::new();
+
     for i in sections {
       let mut name = String::new();
       let mut va: usize = 0;
@@ -386,38 +393,47 @@ impl Arguments {
       let mut md5 = String::new();
 
       if let Some(n) = i.name {
-        name.push_str(n.as_str());
+        s_names.push_str(format!("{n}\n").as_str());
       }
 
       if let Some(virt_a) = i.virtual_address {
-        va = virt_a;
+        s_va.push_str(format!("0x{:X}\n", virt_a).as_str());
       }
 
       if let Some(vsize) = i.virtual_size {
-        vs = vsize;
+        s_vs.push_str(format!("0x{:X}\n", vsize).as_str());
       }
 
       if let Some(rs) = i.raw_size {
-        size = rs;
+        s_size.push_str(format!("{rs}\n").as_str());
       }
 
       if let Some(e) = i.entropy {
-        entropy = e;
+        s_entropy.push_str(format!("{e}\n").as_str());
       }
 
       if let Some(m) = i.md5 {
-        md5.push_str(m.as_str());
+        s_md5.push_str(format!("{m}\n").as_str());
       }
       
-      section_table.add_row(vec![
-        Cell::from(name).fg(Color::Red),
-        Cell::from(format!("0x{:X}", va)).fg(Color::Red),
-        Cell::from(format!("0x{:X}", vs)).fg(Color::Red),
-        Cell::from(format!("{size}")).fg(Color::Red),
-        Cell::from(format!("{entropy}")).fg(Color::Red),
-        Cell::from(format!("{md5}")).fg(Color::Red),
-      ]);
     }
+
+    // Remove the new line character at the end of every string.
+    s_names.pop();
+    s_va.pop();
+    s_vs.pop();
+    s_size.pop();
+    s_entropy.pop();
+    s_md5.pop();
+
+    section_table.add_row(vec![
+      Cell::from(s_names).fg(Color::Red),
+      Cell::from(s_va).fg(Color::Red),
+      Cell::from(s_vs).fg(Color::Red),
+      Cell::from(s_size).fg(Color::Red),
+      Cell::from(s_entropy).fg(Color::Red),
+      Cell::from(s_md5).fg(Color::Red),
+    ]);
 
     println!("{table}");
     println!("{section_table}");
