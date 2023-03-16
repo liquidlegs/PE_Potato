@@ -163,8 +163,8 @@ pub struct DotNetAsm {
 #[derive(Deserialize, Debug, Default)]
 #[allow(dead_code)]
 pub struct VtAttributes {
-  // pub elf_info:                       Option<ElfInfo>,
-  // pub dot_net_assembly:               Option<DotNetAsm>,
+  pub elf_info:                       Option<ElfInfo>,
+  pub dot_net_assembly:               Option<DotNetAsm>,
   pub type_description:               Option<String>,
   pub tlsh:                           Option<String>,
   pub vhash:                          Option<String>,
@@ -187,7 +187,7 @@ pub struct VtAttributes {
   pub sha256:                         Option<String>,
   pub type_extension:                 Option<String>,
   pub tags:                           Option<Vec<String>>,
-  pub crowdsourced_ids_results:       Option<Vec<CrowdSrcIdResults>>,
+  // pub crowdsourced_ids_results:       Option<Vec<CrowdSrcIdResults>>,
   pub last_analysis_date:             Option<usize>,
   pub unique_sources:                 Option<usize>,
   pub first_submission_date:          Option<usize>,
@@ -389,8 +389,10 @@ pub struct AVSandbox {
 pub struct CrowdSrcIdResultsAlertContext {
   pub url:          Option<String>,
   pub hostname:     Option<String>,
-  pub dest_port:    Option<usize>,
+  pub dest_port:    Option<i32>,
   pub dest_ip:      Option<String>,
+  pub src_ip:       Option<String>,
+  pub src_port:     Option<i32>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

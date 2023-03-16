@@ -66,6 +66,10 @@ pub struct Arguments {
   #[clap(long, default_value_if("vt", Some("false"), Some("true")), min_values(0))]
   /// Shows a query on virus total. Must be enabled in the config file.
   pub vt: bool,
+
+  #[clap(long)]
+  /// Manually query virus total with a hash.
+  pub vt_hash: Option<String>,
   
   #[clap(short, long, default_value_if("exports", Some("false"), Some("true")), min_values(0))]
   /// Exported functions.
@@ -196,7 +200,7 @@ impl Arguments {
    *  cpu:      bool {Tells us whether the cpu is 64 or 32}
    * Returns nothing
    */
-  pub fn get_general_info(hash_id: &str, apikey: &str, cpu: bool) -> () {
+  pub fn get_general_info(hash_id: &str, apikey: &str) -> () {
     let mut table = Table::new();
     let mut section_table = Table::new();
     let text = Self::query_virus_total(hash_id, apikey);
@@ -238,6 +242,7 @@ impl Arguments {
     let mut comp = String::new();
     let mut pack = String::new();
     let mut entropy: f32 = 0.0;
+    let mut number_of_sections: usize = 0;
     let mut family = String::new();
     let mut md5_hash = String::new();
     let mut sha256 = String::new();
@@ -250,43 +255,6 @@ impl Arguments {
     let mut engines = AnalysisResults::default();
     let mut sections: Vec<VtSection> = Default::default();
     let mut families: Vec<String> = Default::default();
-
-    let mut providers = Self::get_av_provider_data(engines);
-    if providers.len() > 0 {
-      for i in providers {
-        let mut category = String::new();
-        
-        if let Some(cat) = i.category {
-          category.push_str(cat.as_str());
-        }
-
-        match category.as_str() {
-          "malicious" => {
-            if let Some(r) = i.result {
-              families.push(r);
-            }
-          }
-
-          _ => {}
-        }
-      }
-    }
-
-    families.sort();
-    families.dedup();
-    
-    let mut count: usize = 0;
-    for i in families {
-      if count >= 5 { break; }
-      
-      family.push_str(i.as_str());
-      count += 1;
-    }
-
-    match cpu {
-      true =>   { arch.push_str("64-bit"); }
-      false =>  { arch.push_str("32-bit"); }
-    }
 
     if let Some(data) = output_data.data {
       if let Some(att) = data.attributes {
@@ -315,6 +283,7 @@ impl Arguments {
           
           if let Some(s) = pe_info.sections {
             sections = s;
+            number_of_sections = sections.len().clone();
           }
         }
 
@@ -328,6 +297,39 @@ impl Arguments {
       }
     }
 
+    // Av engines 
+    let mut providers = Self::get_av_provider_data(engines);
+    if providers.len() > 0 {
+      for i in providers {
+        let mut category = String::new();
+        
+        if let Some(cat) = i.category {
+          category.push_str(cat.as_str());
+        }
+
+        match category.as_str() {
+          "malicious" => {
+            if let Some(r) = i.result {
+              families.push(r);
+            }
+          }
+
+          _ => {}
+        }
+      }
+    }
+
+    families.sort();
+    families.dedup();
+    
+    let mut count: usize = 0;
+    for i in families {
+      if count >= 3 { break; }
+      
+      family.push_str(i.as_str());
+      count += 1;
+    }
+
     if let Some(ovr) = pe_info.overlay {
       if let Some(e) = ovr.entropy {
         entropy = e;
@@ -336,6 +338,12 @@ impl Arguments {
 
     if let Some(file) = detect_it_easy.filetype {
       filetype.push_str(file.as_str());
+
+      match filetype.as_str() {
+        "PE64" => { arch.push_str("64-bit") }
+        "PE32" => { arch.push_str("32-bit") }
+        _ => {}
+      }
     }
 
     if let Some(values) = detect_it_easy.values {
@@ -343,12 +351,18 @@ impl Arguments {
         
         if let Some(t) = i._type {
           match t.as_str() {
-            "compiler" => {
-              comp.push_str(t.as_str());
+            "Compiler" => {
+
+              if let Some(n) = i.name {
+                comp.push_str(n.as_str());
+              }
             }
 
-            "packer" => {
-              pack.push_str(t.as_str());
+            "Packer" => {
+              
+              if let Some(n) = i.name {
+                pack.push_str(n.as_str());
+              }
             }
 
             _ => {}
@@ -379,7 +393,7 @@ impl Arguments {
 
     value_col.push_str(
       format!("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}", 
-      names, bin_size, filetype, arch, subsys, comp, pack, 0, entropy, family, detections, no_detections, md5_hash, sha256).as_str()
+      names, bin_size, filetype, arch, subsys, comp, pack, number_of_sections, entropy, family, detections, no_detections, md5_hash, sha256).as_str()
     );
 
     table.add_row(vec![
@@ -452,8 +466,6 @@ impl Arguments {
    */
   pub fn display_data(&self, bytes: Vec<u8>, settings: &mut CmdSettings, sh_everything: bool) -> goblin::error::Result<()> {
     Self::load_config_file(settings).unwrap();
-    let mut cpu = false;
-    let c_cpu = cpu.clone();
 
     let vt_search = || -> std::io::Result<()> {
       if self.vt == true {
@@ -462,19 +474,33 @@ impl Arguments {
         }
 
         else {
-          println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
-          Self::search_virus_total(&settings.file_hash, &settings.api_key.as_str())?;
+          if self.general_info == true {
+            println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
+            Self::get_general_info(&settings.file_hash, &settings.api_key);
+          }
+
+          else {
+            println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
+            Self::search_virus_total(&settings.file_hash, &settings.api_key.as_str())?;
+          }
         }
       }
 
-      else if self.general_info == true {
+      else if let Some(hash) = self.vt_hash.clone() {
         if settings.auto_search_vt.clone() == false {
           println!("{}: Virus Total search must be enabled in the config file", style("Error").red().bright());
         }
 
         else {
-          println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
-          Self::get_general_info(&settings.file_hash, &settings.api_key, c_cpu);
+          
+          println!("Querying [{}] on Virus Total", style(hash.clone()).cyan());
+          if self.general_info == true {
+            Self::get_general_info(&hash, &settings.api_key);
+          }
+
+          else {
+            Self::search_virus_total(&hash, &settings.api_key)?;
+          }
         }
       }
 
@@ -487,7 +513,6 @@ impl Arguments {
       },
       
       Object::PE(pe) => {
-        cpu = pe.is_64;
         let imports = pe.imports;
         let exports = pe.exports;
         let sections = pe.sections;      
