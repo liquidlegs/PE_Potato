@@ -13,10 +13,10 @@ impl VirusTotal {
    *  cpu:      bool {Tells us whether the cpu is 64 or 32}
    * Returns nothing
    */
-  pub fn virus_total_g_general_info(hash_id: &str, apikey: &str) -> () {
+  pub fn get_general_info(hash_id: &str, apikey: &str) -> () {
     let mut table = Table::new();
     let mut section_table = Table::new();
-    let text = Self::virus_total_query(hash_id, apikey);
+    let text = Self::query_api(hash_id, apikey);
 
     // Deserialize the json object in another thread.
     let (tx, rx) = std::sync::mpsc::channel::<VtJsonOutput>();
@@ -256,7 +256,7 @@ impl VirusTotal {
    *  apikey: &str  {The users api key}
    * Returns String
    */
-  pub fn virus_total_query(hash_id: &str, apikey: &str) -> String {
+  pub fn query_api(hash_id: &str, apikey: &str) -> String {
     let base_url = format!("https://www.virustotal.com/api/v3/files/{hash_id}");
   
     let builder = ClientBuilder::new()
@@ -275,8 +275,8 @@ impl VirusTotal {
    *  apikey: &str  {The Virus Total api key}
    * Returns nothing
    */
-  pub fn virus_total_search_detections(hash_id: &str, apikey: &str) -> std::io::Result<()> {
-    let text = Self::virus_total_query(hash_id, apikey);
+  pub fn search_detections(hash_id: &str, apikey: &str) -> std::io::Result<()> {
+    let text = Self::query_api(hash_id, apikey);
 
     // Deserialize the json object in another thread.
     let (tx, rx) = std::sync::mpsc::channel::<VtJsonOutput>();
@@ -325,7 +325,7 @@ impl VirusTotal {
     if let Some(o) = output_data.data {
       if let Some(att) = o.attributes {
         if let Some(results) = att.last_analysis_results {
-          av = Self::get_av_provider_data(results);
+          av = Self::get_engine_data(results);
           matches = true;
         }
       }
@@ -437,7 +437,7 @@ impl VirusTotal {
    *  d: AnalysisResult {The struct to unpack}
    * Returns Vec<AVProvider>
    */
-  pub fn get_av_provider_data(d: AnalysisResults) -> Vec<AVProvider> {
+  pub fn get_engine_data(d: AnalysisResults) -> Vec<AVProvider> {
     let mut out: Vec<AVProvider> = Default::default();
     if let Some(d) = d.Bkav                   { out.push(d); }
     if let Some(d) = d.Lionic                 { out.push(d); }

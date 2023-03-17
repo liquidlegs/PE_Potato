@@ -173,11 +173,11 @@ impl Arguments {
         }
 
         if av.vt == true {
-          VirusTotal::virus_total_search_detections(&settings.file_hash, &settings.api_key)?;
+          VirusTotal::search_detections(&settings.file_hash, &settings.api_key)?;
         }
   
         if av.general_info == true {
-          VirusTotal::virus_total_g_general_info(&settings.file_hash, &settings.api_key);
+          VirusTotal::get_general_info(&settings.file_hash, &settings.api_key);
         }
       }
 
