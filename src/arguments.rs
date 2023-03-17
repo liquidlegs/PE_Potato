@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, Subcommand, Args};
 use console::style;
 use goblin::Object;
 use goblin::pe::data_directories::DataDirectories;
@@ -55,14 +55,22 @@ pub struct DataDirectoryInfo {
 #[derive(Debug, Clone, Parser)]
 #[clap(author, about, version)]
 pub struct Arguments {
-  #[clap(value_parser)]
-  /// The file name or path
-  pub filename: String,
+  #[clap(subcommand)]
+  pub command: Option<Action>,
+}
 
+#[derive(clap::Subcommand, Debug, Clone)]
+pub enum Action {
+  VirusTotal(VtArgs),
+  Bin(BinArgs),
+}
+
+#[derive(Args, Debug, Clone, Default)]
+pub struct VtArgs {
   #[clap(short, long)]
-  /// Manuallt enter apikey and query binary on virus total.
-  pub api_key: Option<String>,
-
+  /// The file name or path
+  pub filename: Option<String>,
+  
   #[clap(long, default_value_if("vt", Some("false"), Some("true")), min_values(0))]
   /// Shows a query on virus total. Must be enabled in the config file.
   pub vt: bool,
@@ -70,6 +78,28 @@ pub struct Arguments {
   #[clap(long)]
   /// Manually query virus total with a hash.
   pub vt_hash: Option<String>,
+
+  #[clap(short, long, default_value_if("general-info", Some("false"), Some("true")), min_values(0))]
+  /// Combines results from virus total and resulting from parsing the binary
+  pub general_info: bool,
+}
+
+impl VtArgs {
+  pub fn count_valid_flags(&self) -> usize {
+    let mut count: usize = 0;
+    
+    if self.vt == true              { count += 1 }
+    if self.general_info == true    { count += 1 }
+
+    count
+  }
+}
+
+#[derive(Args, Debug, Clone, Default)]
+pub struct BinArgs {
+  #[clap(value_parser)]
+  /// The file name or path
+  pub filename: String,
   
   #[clap(short, long, default_value_if("exports", Some("false"), Some("true")), min_values(0))]
   /// Exported functions.
@@ -102,10 +132,6 @@ pub struct Arguments {
   #[clap(short, long, default_value_if("directories", Some("false"), Some("true")), min_values(0))]
   /// Display info about directories and tables
   pub directories: bool,
-
-  #[clap(short, long, default_value_if("general-info", Some("false"), Some("true")), min_values(0))]
-  /// Combines results from virus total and resulting from parsing the binary
-  pub general_info: bool,
 }
 
 impl Arguments {
@@ -225,7 +251,7 @@ impl Arguments {
       }
     }));
 
-    // receive the data.
+    // Receives the data.
     let mut output_data = VtJsonOutput::default();
     match rx.recv() {
       Ok(s) => {
@@ -234,6 +260,7 @@ impl Arguments {
       Err(_) => {}
     }
 
+    // Prepares the strings to hold the information to be displayed in the table.
     let mut names = String::new();
     let mut bin_size: usize = 0;
     let mut filetype = String::new();
@@ -254,6 +281,7 @@ impl Arguments {
     let mut stats = LastAnalysisStats::default();
     let mut sections: Vec<VtSection> = Default::default();
     
+    // Updates each string and structure with data.
     if let Some(data) = output_data.data {
       if let Some(att) = data.attributes {
         if let Some(name) = att.names {
@@ -351,8 +379,8 @@ impl Arguments {
       no_detections = av;
     }
 
-    let mut label_col = String::new();
-    let mut value_col = String::new();
+    let mut label_col = String::new();      // Will store all labels.
+    let mut value_col = String::new();      // Will store all values.
 
     label_col.push_str(
       format!("FileName\nFileSize\nFileType\nCpu\nSubsystem\nCompiler\nPacker\nSections\nEntropy\nFamily\nDetected\nUndetected\nMD5\nSHA256").as_str()
@@ -368,6 +396,7 @@ impl Arguments {
       Cell::from(value_col).fg(Color::DarkCyan),
     ]);
 
+    // Sets the header for the table.
     section_table.set_header(vec![
       Cell::from("Name").fg(Color::Yellow),
       Cell::from("Virtual Address").fg(Color::Yellow),
@@ -384,6 +413,7 @@ impl Arguments {
     let mut s_entropy = String::new();
     let mut s_md5 = String::new();
 
+    // Adds the data to each row.
     for i in sections {
       if let Some(n) = i.name {
         s_names.push_str(format!("{n}\n").as_str());
@@ -419,6 +449,7 @@ impl Arguments {
     s_entropy.pop();
     s_md5.pop();
 
+    // Adds each row to the table.
     section_table.add_row(vec![
       Cell::from(s_names).fg(Color::Red),
       Cell::from(s_va).fg(Color::Red),
@@ -432,6 +463,63 @@ impl Arguments {
     println!("{section_table}");
   }
 
+
+  /**Function parses and displays information about a query from virus total and determines
+   * what information will be displayed to the screen.
+   * Params:
+   *  &self,
+   *  settings:      &mut CmdSettings {Contains the file hash and the api key}
+   *  sh_everything: bool             {When true, will display all information returned from virus total}
+   * Returns std::io::Result<()>
+   */
+  pub fn vt_search(&self, settings: &mut CmdSettings, sh_everything: bool) -> std::io::Result<()> {
+    // Create a default struct and then update it.
+    let mut av = VtArgs::default();
+    if let Some(v) = self.command.clone() {
+
+      match v {
+        Action::VirusTotal(args) => { av = args; }
+        _ => {}
+      }
+    }
+    
+    // Get the apu key from the config file.
+    Self::load_config_file(settings).unwrap();
+
+    if settings.auto_search_vt.clone() == true {
+      if settings.file_hash.len() > 0 {
+        
+        // This will only execute if the specifies a file or a hash with no arguments.
+        if av.count_valid_flags() < 1 {
+          println!("{}: \n\t-f <Path> [OPTIONS]\n\t--vt-hash <Hash> [OPTIONS]", style("Syntax Error").red().bright());
+          return Ok(());  
+        }
+
+        else {
+          println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
+        }
+
+        if av.vt == true {
+          Self::search_virus_total(&settings.file_hash, &settings.api_key)?;
+        }
+  
+        if av.general_info == true {
+          Self::get_general_info(&settings.file_hash, &settings.api_key);
+        }
+      }
+
+      else {
+        println!("{}: \n\t-f <Path> [OPTIONS]\n\t--vt-hash <Hash> [OPTIONS]", style("Syntax Error").red().bright());
+      }
+    }
+
+    else {
+      println!("{}: Virus Total search must be enabled in the config file", style("Error").red().bright());
+    }
+
+    Ok(())
+  }
+
   /**Function displays all data contained in the load file or just some of it in a table as specified by the user.
    * Params:
    *  &self
@@ -442,50 +530,19 @@ impl Arguments {
    */
   pub fn display_data(&self, bytes: Vec<u8>, settings: &mut CmdSettings, sh_everything: bool) -> goblin::error::Result<()> {
     Self::load_config_file(settings).unwrap();
+    let mut bin = BinArgs::default();
 
-    let vt_search = || -> std::io::Result<()> {
-      if self.vt == true {
-        if settings.auto_search_vt.clone() == false {
-          println!("{}: Virus Total search must be enabled in the config file", style("Error").red().bright());
-        }
+    if let Some(b) = self.command.clone() {
 
-        else {
-          if self.general_info == true {
-            println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
-            Self::get_general_info(&settings.file_hash, &settings.api_key);
-          }
-
-          else {
-            println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
-            Self::search_virus_total(&settings.file_hash, &settings.api_key.as_str())?;
-          }
-        }
+      match b {
+        Action::Bin(args) => { bin = args; }
+        _ => {}
       }
-
-      else if let Some(hash) = self.vt_hash.clone() {
-        if settings.auto_search_vt.clone() == false {
-          println!("{}: Virus Total search must be enabled in the config file", style("Error").red().bright());
-        }
-
-        else {
-          
-          println!("Querying [{}] on Virus Total", style(hash.clone()).cyan());
-          if self.general_info == true {
-            Self::get_general_info(&hash, &settings.api_key);
-          }
-
-          else {
-            Self::search_virus_total(&hash, &settings.api_key)?;
-          }
-        }
-      }
-
-      Ok(())
-    };
+    }
 
     match Object::parse(&bytes)? {
       Object::Elf(_) => {
-        vt_search()?;
+        // TODO
       },
       
       Object::PE(pe) => {
@@ -496,7 +553,7 @@ impl Arguments {
         let coff_header = pe.header.coff_header;
         let optional_header = pe.header.optional_header;
 
-        // Self::load_config_file(settings).unwrap();
+        Self::load_config_file(settings).unwrap();
         if sh_everything == true {
           let export_table = Self::get_exports(&exports);
           println!("{export_table}");
@@ -506,43 +563,39 @@ impl Arguments {
 
           let import_table = Self::get_imports(&imports);
           println!("{import_table}");
-
-          vt_search()?;
         }
 
         else {
-          vt_search()?;
-
-          if self.exports == true {
+          if bin.exports == true {
             let export_table = Self::get_exports(&exports);
             println!("{export_table}");
           }
 
-          if self.ex_libs == true {
+          if bin.ex_libs == true {
             let export_lib_table = Self::get_exported_lib(exports);
             println!("{export_lib_table}");
           }
 
-          if self.imports == true {
+          if bin.imports == true {
             let import_table = Self::get_imports(&imports);
             println!("{import_table}");
           }
 
-          if self.sections == true {
+          if bin.sections == true {
             Self::get_section_data(sections);
           }
 
-          if self.dos_header == true {
+          if bin.dos_header == true {
             let dos_header_tb = Self::get_dos_header(dos_header);
             println!("{dos_header_tb}");
           }
 
-          if self.coff_header == true {
+          if bin.coff_header == true {
             let coff_header_tb = Self::get_coff_header(coff_header);
             println!("{coff_header_tb}");
           }
 
-          if self.optional_header == true {
+          if bin.optional_header == true {
             match Self::get_optional_header(optional_header) {
               Some(table) => {
                 println!("{table}");
@@ -553,7 +606,7 @@ impl Arguments {
             }
           }
 
-          if self.directories == true {
+          if bin.directories == true {
             match optional_header.clone() {
               Some(h) => {
                 let table = Self::get_data_directories(h.data_directories);
@@ -567,9 +620,9 @@ impl Arguments {
         }
       },
 
-      Object::Mach(_) => { vt_search()?; },
-      Object::Archive(_) => { vt_search()?; },
-      Object::Unknown(_) => { vt_search()?; }
+      Object::Mach(_) => {},      // TODO
+      Object::Archive(_) => {},   // TODO
+      Object::Unknown(_) => {}    // TODO
     }
 
     Ok(())
@@ -933,7 +986,12 @@ impl Arguments {
     table
   }
 
-
+  /**Function queries the virus total api and returns a string with the json response.
+   * Params:
+   *  hash_id: &str {The hash to query}
+   *  apikey: &str  {The users api key}
+   * Returns String
+   */
   pub fn query_virus_total(hash_id: &str, apikey: &str) -> String {
     let base_url = format!("https://www.virustotal.com/api/v3/files/{hash_id}");
   
