@@ -9,7 +9,7 @@ pub mod pe {
 pub mod elf {
   use serde::Deserialize;
 
-  #[derive(Deserialize, Debug, Default)]
+  #[derive(Debug, Clone, Deserialize, Default)]
   pub struct ElfInfo {
     pub export_list:      Option<Vec<ExportList>>,
     pub header:           Option<Header>,
@@ -20,7 +20,7 @@ pub mod elf {
     pub shared_libraries: Option<Vec<String>>,
   }
 
-  #[derive(Deserialize, Debug, Default)]
+  #[derive(Debug, Clone, Deserialize, Default)]
   pub struct ElfSections {
     pub name:             Option<String>,
     pub virtual_address:  Option<usize>,
@@ -30,27 +30,27 @@ pub mod elf {
     pub size:             Option<usize>,
   }
 
-  #[derive(Deserialize, Debug, Default)]
+  #[derive(Debug, Clone, Deserialize, Default)]
   pub struct SegmentList {
     pub segment_type:   Option<String>,
     pub resources:      Option<Vec<String>>,
   }
 
-  #[derive(Deserialize, Debug, Default)]
+  #[derive(Debug, Clone, Deserialize, Default)]
   pub struct ExportList {
     pub name:   Option<String>,
     #[serde(rename = "type")]
     pub _type:  Option<String>,
   }
 
-  #[derive(Deserialize, Debug, Default)]
+  #[derive(Debug, Clone, Deserialize, Default)]
   pub struct ImportList {
     pub name:   Option<String>,
     #[serde(rename = "type")]
     pub _type:  Option<String>,
   }
 
-  #[derive(Deserialize, Debug, Default)]
+  #[derive(Debug, Clone, Deserialize, Default)]
   pub struct Header {
     #[serde(rename = "type")]
     pub _type:                Option<String>,
@@ -67,13 +67,13 @@ pub mod elf {
   }
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 #[allow(dead_code)]
 pub struct VtJsonOutput {
   pub data: Option<VtData>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 #[allow(dead_code)]
 pub struct VtData {
   pub attributes: Option<VtAttributes>,
@@ -82,13 +82,13 @@ pub struct VtData {
   pub links:      Option<Links>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct DotNetGuids {
   pub mvid:       Option<String>,
   pub typelib_id: Option<String>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct AsmData {
   pub buildnumber:    Option<usize>,
   pub culture:        Option<String>,
@@ -102,18 +102,18 @@ pub struct AsmData {
   pub revisionnumber: Option<usize>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct ExternalAssemblies {
 
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct ExportedTypes {
   pub name:       Option<String>,
   pub namespace:  Option<String>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct Streams {
   pub chi2:     Option<f64>,
   pub entropy:  Option<f32>,
@@ -121,19 +121,19 @@ pub struct Streams {
   pub size:     Option<String>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct UnmanagedMethodList {
   pub methods:  Option<Vec<String>>,
   pub name:     Option<String>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct TypeDefinitionList {
   pub namespace:        Option<String>,
   pub type_definitions: Option<Vec<String>>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct DotNetAsm {
   pub assembly_data:            Option<AsmData>,
   pub assembly_flags:           Option<usize>,
@@ -160,7 +160,7 @@ pub struct DotNetAsm {
   pub unamanaged_method_list:   Option<Vec<UnmanagedMethodList>>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 #[allow(dead_code)]
 pub struct VtAttributes {
   pub elf_info:                       Option<ElfInfo>,
@@ -201,7 +201,7 @@ pub struct VtAttributes {
   pub reputation:                     Option<i32>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 #[allow(dead_code, non_snake_case)]
 pub struct AnalysisResults {
   pub Bkav:                       Option<AVProvider>,
@@ -288,7 +288,7 @@ pub struct AnalysisResults {
   pub Avast:                      Option<AVProvider>,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 #[allow(dead_code)]
 pub struct AVProvider {
   pub category:       Option<String>,

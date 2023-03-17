@@ -72,25 +72,35 @@ pub struct VtArgs {
   /// The file name or path
   pub filename: Option<String>,
   
+  #[clap(long)]
+  /// Manually query virus total with a hash.
+  pub vt_hash: Option<String>,
+  
   #[clap(long, default_value_if("vt", Some("false"), Some("true")), min_values(0))]
   /// Shows a query on virus total. Must be enabled in the config file.
   pub vt: bool,
 
-  #[clap(long)]
-  /// Manually query virus total with a hash.
-  pub vt_hash: Option<String>,
-
   #[clap(short, long, default_value_if("general-info", Some("false"), Some("true")), min_values(0))]
   /// Combines results from virus total and resulting from parsing the binary
   pub general_info: bool,
+
+  #[clap(short, long, default_value_if("sections", Some("false"), Some("true")), min_values(0))]
+  /// Get sections
+  pub sections: bool,
+
+  #[clap(short, long, default_value_if("resource_details", Some("false"), Some("true")), min_values(0))]
+  /// Display resource details
+  pub resource_details: bool,
 }
 
 impl VtArgs {
   pub fn count_valid_flags(&self) -> usize {
     let mut count: usize = 0;
     
-    if self.vt == true              { count += 1 }
-    if self.general_info == true    { count += 1 }
+    if self.vt == true               { count += 1; }
+    if self.general_info == true     { count += 1; }
+    if self.sections == true         { count += 1; }
+    if self.resource_details == true { count += 1; }
 
     count
   }
@@ -172,12 +182,24 @@ impl Arguments {
           println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
         }
 
+        let response = VirusTotal::query_api(&settings.file_hash, &settings.api_key);
+        let output_data = VirusTotal::parse_response(response);
+
         if av.vt == true {
-          VirusTotal::search_detections(&settings.file_hash, &settings.api_key)?;
+          VirusTotal::search_detections(output_data.clone())?;
         }
   
         if av.general_info == true {
-          VirusTotal::get_general_info(&settings.file_hash, &settings.api_key);
+          VirusTotal::get_general_info(output_data.clone());
+        }
+
+        if av.sections == true {
+          VirusTotal::get_sections(output_data.clone());
+        }
+
+        if av.resource_details == true {
+          println!("hey");
+          VirusTotal::get_resource_details(output_data.clone());
         }
       }
 

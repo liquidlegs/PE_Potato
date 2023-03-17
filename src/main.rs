@@ -4,19 +4,13 @@ use arguments::*;
 use clap::Parser;
 use goblin::error;
 use std::path::Path;
-use sha256::{try_digest, digest};
-use console::style;
+use sha256::try_digest;
 
 #[derive(Debug, PartialEq)]
 enum AppState {
   AvSearch,
   BinSearch,
   Waiting,
-}
-
-enum HashType {
-  Filename,
-  HashValue,
 }
 
 /**Function handles how to add the file hash to the CmdSettings when manually speicified or generated with a file path.
