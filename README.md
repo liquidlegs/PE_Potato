@@ -1,7 +1,8 @@
 # PE_Potato
 
-![ pe1 ](/assets/pe1.png)
-![ pe3 ](/assets/pe3.png)
+![ pe1 ](/assets/_1.png)
+![ pe3 ](/assets/_2.png)
+![ pe3 ](/assets/_3.png)
 
 PE_Potato is a PE/ELF binary analyzer.
 
@@ -12,12 +13,18 @@ However, this will change over time.
 - View exported functions
 - View imported functions
 - View libraries
-- Query the binary's hash via virus total
 - View sections
 - View the DOS header
 - View the file header
 - View the COFF header
 - View Directories
+- Query Virus Total for:
+  - general information
+  - sections
+  - resources
+- Query Virus Total via:
+  - Generated hash
+  - Manually entered hash
 
 ## Planned features
 - A modern GUI
@@ -37,3 +44,4 @@ However, this will change over time.
   - Contained Resources By Language
   - Contained Resources
   - Other malicious payload information
+- Upload samples to Virus Total
