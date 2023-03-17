@@ -226,7 +226,6 @@ impl VirusTotal {
    */
   pub fn get_general_info(output_data: VtJsonOutput) -> () {
     let mut table = Table::new();
-    // let mut section_table = Table::new();
 
     // Prepares the strings to hold the information to be displayed in the table.
     let mut names = String::new();
@@ -544,12 +543,12 @@ impl VirusTotal {
     Ok(())
   }
 
-  /**Function unpacks the AnalysisResults struct into a vec so user does not have to manually extract data from 82 fields.
+  /**Function unpacks the LastAnalysisResults struct into a vec so user does not have to manually extract data from 82 fields.
    * Params:
    *  d: AnalysisResult {The struct to unpack}
    * Returns Vec<AVProvider>
    */
-  pub fn get_engine_data(d: AnalysisResults) -> Vec<AVProvider> {
+  pub fn get_engine_data(d: LastAnalysisResults) -> Vec<AVProvider> {
     let mut out: Vec<AVProvider> = Default::default();
     if let Some(d) = d.Bkav                   { out.push(d); }
     if let Some(d) = d.Lionic                 { out.push(d); }

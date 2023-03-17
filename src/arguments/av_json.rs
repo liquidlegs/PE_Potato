@@ -197,13 +197,13 @@ pub struct VtAttributes {
   pub pe_info:                        Option<PeInfo>,
   pub magic:                          Option<String>,
   pub last_analysis_stats:            Option<LastAnalysisStats>,
-  pub last_analysis_results:          Option<AnalysisResults>,
+  pub last_analysis_results:          Option<LastAnalysisResults>,
   pub reputation:                     Option<i32>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
 #[allow(dead_code, non_snake_case)]
-pub struct AnalysisResults {
+pub struct LastAnalysisResults {
   pub Bkav:                       Option<AVProvider>,
   pub Lionic:                     Option<AVProvider>,
   pub Elastic:                    Option<AVProvider>,
@@ -446,10 +446,10 @@ pub struct Reserved10 {
 
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct CodeView {
-  pub age:        Option<usize>,
+  pub age:        Option<i32>,
   pub guid:       Option<String>,
   pub name:       Option<String>,
-  pub offset:     Option<usize>,
+  pub offset:     Option<i32>,
   pub signature:  Option<String>,
   pub timestamp:  Option<String>,
 }
@@ -461,7 +461,7 @@ pub struct Fpo {
 
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct Misc {
-  pub datatype:   Option<usize>,
+  pub datatype:   Option<i32>,
   pub length:     Option<usize>,
   pub unicode:    Option<usize>,
   pub data:       Option<String>,
@@ -477,13 +477,28 @@ pub struct ImportList {
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct ResourceTypes {
   #[serde(rename = "RT_ICON")]
-  pub rt_icon:        Option<usize>,
+  pub rt_icon:          Option<usize>,
+
+  #[serde(rename = "RT_DIALOG")]
+  pub rt_dialog:        Option<usize>,
+  
+  #[serde(rename = "RT_CURSOR")]
+  pub rt_cursor:        Option<usize>,
+  
+  #[serde(rename = "RT_ACCELERATOR")]
+  pub rt_accelerator:   Option<usize>,
+
+  #[serde(rename = "RT_BITMAP")]
+  pub rt_bitmap:        Option<usize>,
   
   #[serde(rename = "RT_MANIFEST")]
-  pub rt_manifest:    Option<usize>,
+  pub rt_manifest:      Option<usize>,
   
   #[serde(rename = "RT_GROUP_ICON")]
-  pub rt_group_icon:  Option<usize>,
+  pub rt_group_icon:    Option<usize>,
+  
+  #[serde(rename = "RT_GROUP_CURSOR")]
+  pub rt_group_cursor:  Option<usize>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
