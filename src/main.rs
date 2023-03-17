@@ -32,9 +32,7 @@ fn run_av_search(filename_exists: bool, hash_exists: bool, input: String, argc: 
   if filename_exists == true {
     let path = Path::new(&input);
     let hash = try_digest(path)?;
-
     let mut settings = CmdSettings::new(hash);
-    let bytes = std::fs::read(path)?;
 
     if argc == 4 {
       args.vt_search(&mut settings, true)?;
@@ -100,13 +98,11 @@ fn main() -> error::Result<()> {
 
   // Virus total commands will execute this branch.
   if state == AppState::AvSearch {
-    println!("filename {}\nhash {}", av_filename_exists, av_hash_exists);
     if av_filename_exists == true {
       run_av_search(true, false, filename, cmdline.len(), args.clone())?;
     }
 
     else if av_hash_exists == true {
-      println!("opt_hash {opt_hash}");
       run_av_search(false, true, opt_hash, cmdline.len(), args.clone())?;
     }
   }
@@ -129,7 +125,6 @@ fn main() -> error::Result<()> {
       args.display_data(bytes, &mut settings, false)?;
     }
   }
-
 
   Ok(())
 }
