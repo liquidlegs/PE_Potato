@@ -198,7 +198,6 @@ impl Arguments {
         }
 
         if av.resource_details == true {
-          println!("hey");
           VirusTotal::get_resource_details(output_data.clone());
         }
       }

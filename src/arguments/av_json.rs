@@ -1,5 +1,4 @@
 use serde::Deserialize;
-
 use self::elf::ElfInfo;
 
 pub mod pe {
@@ -288,7 +287,7 @@ pub struct LastAnalysisResults {
   pub Avast:                      Option<AVProvider>,
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Deserialize, Default, PartialEq, Eq, PartialOrd, Ord)]
 #[allow(dead_code)]
 pub struct AVProvider {
   pub category:       Option<String>,
@@ -499,6 +498,12 @@ pub struct ResourceTypes {
   
   #[serde(rename = "RT_GROUP_CURSOR")]
   pub rt_group_cursor:  Option<usize>,
+
+  #[serde(rename = "RT_STRING")]
+  pub rt_string:        Option<usize>,
+  
+  #[serde(rename = "RT_VERSION")]
+  pub rt_version:       Option<usize>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

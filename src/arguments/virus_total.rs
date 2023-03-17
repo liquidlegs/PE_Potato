@@ -442,6 +442,8 @@ impl VirusTotal {
       }
     }
 
+    av.sort();
+
     for i in av {
       
       let mut av = String::from("None");
