@@ -216,7 +216,7 @@ impl VirusTotal {
 
     output_data
   }
-  
+
   /**Function queries virus total for general info about the sample.
    * Params:
    *  hash_id:  &str {The hash of the sample}
@@ -443,7 +443,6 @@ impl VirusTotal {
     }
 
     av.sort();
-
     for i in av {
       
       let mut av = String::from("None");

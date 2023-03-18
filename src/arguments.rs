@@ -183,7 +183,7 @@ impl Arguments {
         }
 
         let response = VirusTotal::query_api(&settings.file_hash, &settings.api_key);
-        let output_data = VirusTotal::parse_response(response);
+        let output_data = VirusTotal::parse_response(response.clone());
 
         if av.vt == true {
           VirusTotal::search_detections(output_data.clone())?;

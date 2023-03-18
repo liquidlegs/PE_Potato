@@ -168,7 +168,7 @@ pub struct VtAttributes {
   pub tlsh:                           Option<String>,
   pub vhash:                          Option<String>,
   pub trid:                           Option<Vec<Trid>>,
-  // pub crowdsourced_yara_results:      Option<CrowdSrcYara>,
+  pub crowdsourced_yara_results:      Option<Vec<CrowdSrcYara>>,
   pub creation_date:                  Option<f64>,
   pub names:                          Option<Vec<String>>,
   pub last_modification_date:         Option<f64>,
@@ -186,7 +186,7 @@ pub struct VtAttributes {
   pub sha256:                         Option<String>,
   pub type_extension:                 Option<String>,
   pub tags:                           Option<Vec<String>>,
-  // pub crowdsourced_ids_results:       Option<Vec<CrowdSrcIdResults>>,
+  pub crowdsourced_ids_results:       Option<Vec<CrowdSrcIdResults>>,
   pub last_analysis_date:             Option<usize>,
   pub unique_sources:                 Option<usize>,
   pub first_submission_date:          Option<usize>,
@@ -400,11 +400,11 @@ pub struct CrowdSrcIdResults {
   pub alert_severity:  Option<String>,
   pub rule_msg:        Option<String>,
   pub rule_raw:        Option<String>,
-  pub alert_context:   Option<CrowdSrcIdResultsAlertContext>,
+  pub alert_context:   Option<Vec<CrowdSrcIdResultsAlertContext>>,
   pub rule_url:        Option<String>,
   pub rule_source:     Option<String>,
   pub rule_id:         Option<String>,
-  pub rule_references: Option<String>,
+  pub rule_references: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
