@@ -40,6 +40,7 @@ However, this will change over time.
   - Pe Header
   - Sections
   - Imports
+  - Exports
   - Contained Resources By Type
   - Contained Resources By Language
   - Contained Resources

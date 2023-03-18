@@ -78,7 +78,7 @@ pub struct VtArgs {
   
   #[clap(long, default_value_if("vt", Some("false"), Some("true")), min_values(0))]
   /// Shows a query on virus total. Must be enabled in the config file.
-  pub vt: bool,
+  pub av: bool,
 
   #[clap(short, long, default_value_if("general-info", Some("false"), Some("true")), min_values(0))]
   /// Combines results from virus total and resulting from parsing the binary
@@ -88,19 +88,59 @@ pub struct VtArgs {
   /// Get sections
   pub sections: bool,
 
-  #[clap(short, long, default_value_if("resource_details", Some("false"), Some("true")), min_values(0))]
+  #[clap(short, long, default_value_if("resource-details", Some("false"), Some("true")), min_values(0))]
   /// Display resource details
   pub resource_details: bool,
+
+  #[clap(short = 'R', long, default_value_if("resource-by-type", Some("false"), Some("true")), min_values(0))]
+  /// Display resources by type [TODO]
+  pub resources_by_type: bool,
+
+  #[clap(short, long, default_value_if("yara-rules", Some("false"), Some("true")), min_values(0))]
+  /// Display suggested yara rules [TODO]
+  pub yara_rules: bool,
+
+  #[clap(short = 'S', long, default_value_if("sigma-rules", Some("false"), Some("true")), min_values(0))]
+  /// Display suggested sigma rules [TODO]
+  pub sigma_rules: bool,
+
+  #[clap(short, long, default_value_if("names", Some("false"), Some("true")), min_values(0))]
+  /// Display the history of names [TODO]
+  pub names: bool,
+
+  #[clap(short, long, default_value_if("compiler-products", Some("false"), Some("true")), min_values(0))]
+  /// Display compiler products [TODO]
+  pub compiler_products: bool,
+
+  #[clap(short, long, default_value_if("imports", Some("false"), Some("true")), min_values(0))]
+  /// Display imported functions [TODO]
+  pub imports: bool,
+
+  #[clap(short, long, default_value_if("exports", Some("false"), Some("true")), min_values(0))]
+  /// Display exported functions [TODO]
+  pub exports: bool,
+
+  #[clap(short, long, default_value_if("tags", Some("false"), Some("true")), min_values(0))]
+  /// Display tags [TODO]
+  pub tags: bool,
 }
 
 impl VtArgs {
   pub fn count_valid_flags(&self) -> usize {
     let mut count: usize = 0;
     
-    if self.vt == true               { count += 1; }
-    if self.general_info == true     { count += 1; }
-    if self.sections == true         { count += 1; }
-    if self.resource_details == true { count += 1; }
+    if self.av == true                      { count += 1; }
+    if self.general_info == true            { count += 1; }
+    if self.sections == true                { count += 1; }
+    if self.resource_details == true        { count += 1; }
+    if self.resources_by_type == true       { count += 1; }
+    if self.yara_rules == true              { count += 1; }
+    if self.sigma_rules == true             { count += 1; }
+    if self.names == true                   { count += 1; }
+    if self.compiler_products == true       { count += 1; }
+    if self.imports == true                 { count += 1; }
+    if self.exports == true                 { count += 1; }
+    if self.tags == true                    { count += 1; }
 
     count
   }
@@ -185,7 +225,7 @@ impl Arguments {
         let response = VirusTotal::query_api(&settings.file_hash, &settings.api_key);
         let output_data = VirusTotal::parse_response(response.clone());
 
-        if av.vt == true {
+        if av.av == true {
           VirusTotal::search_detections(output_data.clone())?;
         }
   
@@ -199,6 +239,38 @@ impl Arguments {
 
         if av.resource_details == true {
           VirusTotal::get_resource_details(output_data.clone());
+        }
+
+        if av.resources_by_type == true {
+          todo!("{}: This option is on the todo list!", style("Error").red().bright());
+        }
+
+        if av.yara_rules  == true {
+          todo!("{}: This option is on the todo list!", style("Error").red().bright());
+        }
+
+        if av.sigma_rules == true {
+          todo!("{}: This option is on the todo list!", style("Error").red().bright());
+        }
+
+        if av.names == true {
+          todo!("{}: This option is on the todo list!", style("Error").red().bright());
+        }
+
+        if av.compiler_products == true {
+          todo!("{}: This option is on the todo list!", style("Error").red().bright());
+        }
+
+        if av.imports  == true {
+          todo!("{}: This option is on the todo list!", style("Error").red().bright());
+        }
+
+        if av.exports == true {
+          todo!("{}: This option is on the todo list!", style("Error").red().bright());
+        } 
+
+        if av.tags == true {
+          todo!("{}: This option is on the todo list!", style("Error").red().bright());
         }
       }
 
