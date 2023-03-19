@@ -1,10 +1,6 @@
 use serde::Deserialize;
 use self::elf::ElfInfo;
 
-pub mod pe {
-
-}
-
 pub mod elf {
   use serde::Deserialize;
 
@@ -145,13 +141,13 @@ pub struct SigmaMatchContextValues {
 #[derive(Debug, Clone, Deserialize, Default)]
 #[allow(dead_code)]
 pub struct VtJsonOutput {
-  pub data: Option<VtData>,
+  pub data: Option<FileData>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
 #[allow(dead_code)]
-pub struct VtData {
-  pub attributes: Option<VtAttributes>,
+pub struct FileData {
+  pub attributes: Option<FileAttributes>,
   pub _type:      Option<String>,
   pub id:         Option<String>,
   pub links:      Option<Links>,
@@ -237,7 +233,7 @@ pub struct DotNetAsm {
 
 #[derive(Debug, Clone, Deserialize, Default)]
 #[allow(dead_code)]
-pub struct VtAttributes {
+pub struct FileAttributes {
   pub elf_info:                       Option<ElfInfo>,
   pub dot_net_assembly:               Option<DotNetAsm>,
   pub type_description:               Option<String>,
@@ -462,9 +458,10 @@ pub struct AVSandbox {
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
-pub struct CrowdSrcIdResultsAlertContext {
+pub struct AlertContext {
   pub url:          Option<String>,
   pub hostname:     Option<String>,
+  pub protocol:     Option<String>,
   pub dest_port:    Option<i32>,
   pub dest_ip:      Option<String>,
   pub src_ip:       Option<String>,
@@ -477,7 +474,7 @@ pub struct CrowdSrcIdResults {
   pub alert_severity:  Option<String>,
   pub rule_msg:        Option<String>,
   pub rule_raw:        Option<String>,
-  pub alert_context:   Option<Vec<CrowdSrcIdResultsAlertContext>>,
+  pub alert_context:   Option<Vec<AlertContext>>,
   pub rule_url:        Option<String>,
   pub rule_source:     Option<String>,
   pub rule_id:         Option<String>,

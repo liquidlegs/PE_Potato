@@ -1,7 +1,7 @@
 mod virus_total;
 use virus_total::*;
 
-use clap::{Parser, Subcommand, Args};
+use clap::{Parser, Args};
 use console::style;
 use goblin::Object;
 use goblin::pe::data_directories::DataDirectories;
@@ -21,7 +21,8 @@ use reqwest::{
   blocking::ClientBuilder, Method
 };
 
-mod av_json;
+mod vt_file_json;
+mod vt_behaviour_json;
 
 mod config_options {
   pub const CONFIG_FILE: &str = "config.conf";
