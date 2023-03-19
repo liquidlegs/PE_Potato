@@ -383,6 +383,20 @@ impl VirusTotal {
     text
   }
 
+  /**Function queries the virus total api for file behaviour and returns a json response.
+   * Params:
+   *  hash_id:       &str       {The hash of the file}
+   *  releationship: &str       {The type of behaviour to query}
+   * Returns Result<()>.
+   */
+  pub fn query_file_behaviour(hash_id: &str, relationship: &str) -> reqwest::Result<()> {
+    // Different releationships are found here https://developers.virustotal.com/reference/files#relationships
+    // relationship should be "behaviours" to query for file behaviour. 
+
+    let url = format!("https://www.virustotal.com/api/v3/files/{hash_id}/{relationship}?limit=10");
+    Ok(())
+  }
+
   /**Function uploads a file to virus total with the api and returns a response when complete.
    * Params:
    *  filename: &str        {The name of the file to upload}
