@@ -1,5 +1,7 @@
 mod virus_total;
 use virus_total::*;
+mod function_backlist;
+use function_backlist::*;
 
 use clap::{Parser, Args};
 use console::style;
@@ -457,7 +459,7 @@ impl Arguments {
   pub fn get_data_directories(dir: DataDirectories) -> Table {
     let mut table = Table::new();
     table.set_header(vec![
-      Cell::from("Name").fg(Color::DarkCyan),
+      Cell::from("Name").fg(Color::Yellow),
       Cell::from("Size").fg(Color::Yellow),
       Cell::from("Virtual_Address").fg(Color::Yellow),
     ]);
@@ -599,9 +601,9 @@ impl Arguments {
     rva_string.pop();
 
     table.add_row(vec![
-      Cell::from(label_string).fg(Color::DarkCyan),
-      Cell::from(size_string).fg(Color::Yellow),
-      Cell::from(rva_string).fg(Color::Yellow),
+      Cell::from(label_string).fg(Color::Yellow),
+      Cell::from(size_string).fg(Color::DarkCyan),
+      Cell::from(rva_string).fg(Color::DarkCyan),
     ]);
 
     table
@@ -695,8 +697,8 @@ impl Arguments {
       }
 
       let row = Row::from(vec![
-        Cell::from(label_string).fg(Color::DarkCyan),
-        Cell::from(value_string).fg(Color::Yellow),
+        Cell::from(label_string).fg(Color::Yellow),
+        Cell::from(value_string).fg(Color::DarkCyan),
       ]);
 
       table.add_row(row);
