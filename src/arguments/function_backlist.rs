@@ -3,6 +3,7 @@ use std::thread;
 use std::sync::mpsc;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum FunctionType {
   Enumeration,
   Execution,
@@ -16,17 +17,17 @@ pub enum FunctionType {
 
 #[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MaliciousCategories {
-  enumeration:        Vec<String>,
-  execution:          Vec<String>,
-  collection:         Vec<String>,
-  defense_evasion:    Vec<String>,
-  networking:         Vec<String>,
-  anti_debugging:     Vec<String>,
-  crypto:             Vec<String>,
-  helper:             Vec<String>,  
+  pub enumeration:        Vec<String>,
+  pub execution:          Vec<String>,
+  pub collection:         Vec<String>,
+  pub defense_evasion:    Vec<String>,
+  pub networking:         Vec<String>,
+  pub anti_debugging:     Vec<String>,
+  pub crypto:             Vec<String>,
+  pub helper:             Vec<String>,  
 }
 
-const BLACK_LIST: &str = "src/arguments/text_files/blacklist.json";
+#[allow(dead_code)]
 impl MaliciousCategories {
 
   /**Function loads the function blacklist and then deserializes the json object into a structure.
@@ -34,7 +35,8 @@ impl MaliciousCategories {
    *  None
    * Returns Result<MaliciousCategories>
    */
-  pub fn read_blacklist(&self) -> std::io::Result<(MaliciousCategories)> {
+  pub fn read_blacklist(&self) -> std::io::Result<MaliciousCategories> {
+    const BLACK_LIST: &str = "src/arguments/text_files/blacklist.json";
     let path = std::path::Path::new(BLACK_LIST);
     let bytes = std::fs::read(path)?;
 
@@ -74,8 +76,3 @@ impl MaliciousCategories {
     Ok(data)
   }
 }
-
-
-
-
-
