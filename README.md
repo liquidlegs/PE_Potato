@@ -28,6 +28,7 @@ However, this will change over time.
 
 ## Planned features
 - A modern GUI
+- Elf parsing support
 - View strings
 - View debug info
 - View the manifest
