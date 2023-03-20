@@ -45,5 +45,12 @@ However, this will change over time.
   - Contained Resources By Type
   - Contained Resources By Language
   - Contained Resources
+  - Mitre Attack TTP's
+  - HTTP requests
+  - IP Traffic
+  - DNS lookups
+  - Written and dropped files
+  - Set registry keys
+  - Process Tree
   - Other malicious payload information
 - Upload samples to Virus Total
