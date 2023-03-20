@@ -19,12 +19,13 @@ However, this will change over time.
 - View the COFF header
 - View Directories
 - Query Virus Total for:
-  - general information
-  - sections
-  - resources
+  - General information
+  - Sections
+  - Contained Resources
+  - AV Detections
 - Query Virus Total via:
-  - Generated hash
-  - Manually entered hash
+  - Generated Hash
+  - Manually Entered Hash
 
 ## Planned features
 - A modern GUI
@@ -44,7 +45,6 @@ However, this will change over time.
   - Exports
   - Contained Resources By Type
   - Contained Resources By Language
-  - Contained Resources
   - Mitre Attack TTP's
   - HTTP requests
   - IP Traffic
