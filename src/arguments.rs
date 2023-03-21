@@ -20,11 +20,18 @@ use std::{
 };
 use comfy_table::{Table, Cell, Row, Color};
 use reqwest::{
-  blocking::ClientBuilder, Method
+  blocking::{ClientBuilder, Response}, Method
 };
+use custom_error::custom_error;
 
 mod vt_file_json;
 mod vt_behaviour_json;
+
+custom_error! {pub GeneralError
+  Io{source: std::io::Error}                  = "Unable to read file - {source}",
+  Request{source: reqwest::Error}             = "Unable to make request - {source}",
+  Goblin{source: goblin::error::Error}        = "Unable to parse binary - {source}",
+}
 
 mod config_options {
   pub const CONFIG_FILE: &str = "config.conf";
@@ -198,7 +205,7 @@ impl Arguments {
    *  sh_everything: bool             {When true, will display all information returned from virus total}
    * Returns std::io::Result<()>
    */
-  pub fn vt_search(&self, settings: &mut CmdSettings, sh_everything: bool) -> std::io::Result<()> {
+  pub fn vt_search(&self, settings: &mut CmdSettings, sh_everything: bool) -> std::result::Result<(), GeneralError> {
     // Create a default struct and then update it.
     let mut av = VtArgs::default();
     if let Some(v) = self.command.clone() {
@@ -245,7 +252,9 @@ impl Arguments {
         }
 
         if av.resources_by_type == true {
-          todo!("{}: This option is on the todo list!", style("Error").red().bright());
+          if let Some(rs) = VirusTotal::get_resource_by_type(output_data.clone()) {
+            println!("{rs}");
+          }
         }
 
         if av.yara_rules  == true {
@@ -257,11 +266,15 @@ impl Arguments {
         }
 
         if av.names == true {
-          todo!("{}: This option is on the todo list!", style("Error").red().bright());
+          if let Some(n) = VirusTotal::get_file_names(output_data.clone()) {
+            println!("{n}");
+          }
         }
 
         if av.compiler_products == true {
-          todo!("{}: This option is on the todo list!", style("Error").red().bright());
+          if let Some(c) = VirusTotal::get_compiler_products(output_data.clone()) {
+            println!("{c}");
+          }
         }
 
         if av.imports  == true {
@@ -273,8 +286,12 @@ impl Arguments {
         } 
 
         if av.tags == true {
-          todo!("{}: This option is on the todo list!", style("Error").red().bright());
+          if let Some(tags) = VirusTotal::get_tags(output_data.clone()) {
+            println!("{tags}");
+          }
         }
+
+        // let behaviour = VirusTotal::query_file_behaviour("", "", 10, "")?;
       }
 
       else {

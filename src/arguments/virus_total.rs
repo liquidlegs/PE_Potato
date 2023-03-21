@@ -1,7 +1,7 @@
 use comfy_table::{Table, Cell, Row, Color};
 use super::{
   vt_file_json::*,
-  ClientBuilder, Method,
+  ClientBuilder, Method, Response, GeneralError
 };
 
 pub struct VirusTotal {}
@@ -9,10 +9,10 @@ impl VirusTotal {
 
   /**Function displayed detailed information about each resource in the file.
    * Params:
-   *  output_data: VtJsonOutput {The parsed json response}
+   *  output_data: FileJsonOutput {The parsed json response}
    * Returns nothing.
    */
-  pub fn get_resource_details(output_data: VtJsonOutput) -> () {
+  pub fn get_resource_details(output_data: FileJsonOutput) -> () {
     let mut table = Table::new();
 
     // Set the table header.
@@ -97,10 +97,10 @@ impl VirusTotal {
 
   /**Function displays detailed information about the section header.
    * Params:
-   *  output_data: VtJsonOutput {The parsed json response}
+   *  output_data: FileJsonOutput {The parsed json response}
    * Returns nothing.
    */
-  pub fn get_sections(output_data: VtJsonOutput) -> () {
+  pub fn get_sections(output_data: FileJsonOutput) -> () {
     let mut section_table = Table::new();
 
     // Sets the header for the table.
@@ -184,11 +184,11 @@ impl VirusTotal {
     println!("{section_table}");
   }
 
-  pub fn parse_response(response: String) -> VtJsonOutput {
+  pub fn parse_response(response: String) -> FileJsonOutput {
     // Deserialize the json object in another thread.
-    let (tx, rx) = std::sync::mpsc::channel::<VtJsonOutput>();
+    let (tx, rx) = std::sync::mpsc::channel::<FileJsonOutput>();
     std::thread::spawn(Box::new(move || {
-      match serde_json::from_str::<VtJsonOutput>(&response) {
+      match serde_json::from_str::<FileJsonOutput>(&response) {
         Ok(s) => {
 
           // Send the results back to the main thread.
@@ -206,7 +206,7 @@ impl VirusTotal {
     }));
 
     // Receives the data.
-    let mut output_data = VtJsonOutput::default();
+    let mut output_data = FileJsonOutput::default();
     match rx.recv() {
       Ok(s) => {
         output_data = s;
@@ -224,7 +224,7 @@ impl VirusTotal {
    *  cpu:      bool {Tells us whether the cpu is 64 or 32}
    * Returns nothing
    */
-  pub fn get_general_info(output_data: VtJsonOutput) -> () {
+  pub fn get_general_info(output_data: FileJsonOutput) -> () {
     let mut table = Table::new();
 
     // Prepares the strings to hold the information to be displayed in the table.
@@ -364,6 +364,186 @@ impl VirusTotal {
     println!("{table}");
   }
 
+  /**Function displays all the compiler products for a said binary by parse the response from the virus total api.
+   * Params:
+   *  output_data: FileJsonOutput {The json repsonse from virus total api}
+   * Returns Option<Table>
+   */
+  pub fn get_compiler_products(output_data: FileJsonOutput) -> Option<Table> {
+    let mut table = Table::new();
+
+    table.set_header(vec![
+      Cell::from("id").fg(Color::Yellow),
+      Cell::from("version").fg(Color::Yellow),
+      Cell::from("count").fg(Color::Yellow),
+    ]);
+
+    let mut ids = String::new();
+    let mut versions = String::new();
+    let mut counts = String::new();
+    
+    let data = output_data.data?.attributes?.pe_info?.compiler_product_versions?;
+    for i in data {
+
+      // Correctly filter out string so split with " " works as expected.
+      let filter = i.replace(",", "").replace("=", ": ");
+      let split: Vec<&str> = filter.split(" ").collect();
+
+      for idx in 0..split.len() {
+        match split[idx] {
+          "id:" =>        { ids.push_str(format!("{}\n", split[idx+1]).as_str()); }
+          "[---]" =>      { ids.push_str("None\n"); }
+          "version:" =>   { versions.push_str(format!("{}\n", split[idx+1]).as_str()); }
+          "count:" =>     { counts.push_str(format!("{}\n", split[idx+1]).as_str()); }
+          _ => {}
+        }
+      }
+    }
+
+    ids.pop();
+    versions.pop();
+    counts.pop();
+
+    table.add_row(vec![
+      Cell::from(ids).fg(Color::Red),
+      Cell::from(versions).fg(Color::Red),
+      Cell::from(counts).fg(Color::Red),
+    ]);
+    
+    Some(table)
+  }
+
+  /**Function displays all files names from the virus total api response in regards to a file hash.
+   * Params:
+   *  output_data: FileJsonOutput {The virus total api response}
+   * Returns Option<Table>
+   */
+  pub fn get_file_names(output_data: FileJsonOutput) -> Option<Table> {
+    let mut table = Table::new();
+
+    table.set_header(vec![
+      Cell::from("Name").fg(Color::Yellow),
+    ]);
+
+    let mut row = String::from("");
+    let data = output_data.data?.attributes?.names?;
+    
+    for i in data {
+      row.push_str(format!("{}\n", i).as_str());
+    }
+
+    row.pop();
+
+    table.add_row(vec![
+      Cell::from(row).fg(Color::Red),
+    ]);
+
+    Some(table)
+  }
+
+  /**Function displays all tags from the virus total api response in regards to a file hash.
+   * Params:
+   *  output_data: FileJsonOutput {The virus total api response}
+   * Returns Option<Table>
+   */
+  pub fn get_tags(output_data: FileJsonOutput) -> Option<Table> {
+    let mut table = Table::new();
+    table.set_header(vec![
+      Cell::from("Tags").fg(Color::Yellow),
+    ]);
+
+    let data = output_data.data?.attributes?.tags?;
+    let mut tags = String::new();
+
+    for i in data {
+      tags.push_str(format!("{i}\n").as_str());
+    }
+
+    tags.pop();
+    table.add_row(vec![
+      Cell::from(tags).fg(Color::Red),
+    ]);
+
+    Some(table)
+  }
+
+  /**Function displays all resource types from the virus total api response in regards to a file hash.
+   * Params:
+   *  output_data: FileJsonOutput {The virus total api response}
+   * Returns Option<Table>
+   */
+  pub fn get_resource_by_type(output_data: FileJsonOutput) -> Option<Table> {
+    let mut table = Table::new();
+    table.set_header(vec![
+      Cell::from("Resource_Type").fg(Color::Yellow),
+      Cell::from("count").fg(Color::Yellow),
+    ]);
+
+    let mut resource = String::new();
+    let mut count = String::new();
+    let data = output_data.data?.attributes?.pe_info?.resource_types?;
+
+    if let Some(icon) = data.rt_icon {
+      resource.push_str("RT_ICON\n");
+      count.push_str(format!("{icon}\n").as_str());
+    }
+
+    if let Some(dialog) = data.rt_dialog {
+      resource.push_str("RT_DIALOG\n");
+      count.push_str(format!("{dialog}\n").as_str());
+    };
+
+    if let Some(cursor) = data.rt_cursor {
+      resource.push_str("RT_CURSOR\n");
+      count.push_str(format!("{cursor}\n").as_str());
+    }
+
+    if let Some(acc) = data.rt_accelerator {
+      resource.push_str("RT_ACCELERATOR\n");
+      count.push_str(format!("{acc}\n").as_str());
+    }
+
+    if let Some(bit) = data.rt_bitmap {
+      resource.push_str("RT_BITMAP\n");
+      count.push_str(format!("{bit}\n").as_str());
+    }
+
+    if let Some(mani) = data.rt_manifest {
+      resource.push_str("RT_MANIFEST\n");
+      count.push_str(format!("{mani}\n").as_str());
+    }
+
+    if let Some(g_icon) = data.rt_group_icon {
+      resource.push_str("RT_GROUP_ICON\n");
+      count.push_str(format!("{g_icon}\n").as_str());
+    }
+
+    if let Some(g_cursor) = data.rt_group_cursor {
+      resource.push_str("RT_GROUP_CURSOR\n");
+      count.push_str(format!("{g_cursor}\n").as_str());
+    }
+
+    if let Some(_str) = data.rt_string {
+      resource.push_str("RT_STRING\n");
+      count.push_str(format!("{_str}\n").as_str());
+    }
+
+    if let Some(ver) = data.rt_version {
+      resource.push_str("RT_VERSION\n");
+      count.push_str(format!("{ver}\n").as_str());
+    }
+    
+    resource.pop();
+    count.pop();
+
+    table.add_row(vec![
+      Cell::from(resource).fg(Color::Red),
+      Cell::from(count).fg(Color::Red),
+    ]);
+
+    Some(table)
+  }
+
   /**Function queries the virus total api and returns a string with the json response.
    * Params:
    *  hash_id: &str {The hash to query}
@@ -387,14 +567,18 @@ impl VirusTotal {
    * Params:
    *  hash_id:       &str       {The hash of the file}
    *  releationship: &str       {The type of behaviour to query}
-   * Returns Result<()>.
+   *  n_results:     &str       {The number of json objects to return}
+   * Returns Result<Response>.
    */
-  pub fn query_file_behaviour(hash_id: &str, relationship: &str) -> reqwest::Result<()> {
-    // Different releationships are found here https://developers.virustotal.com/reference/files#relationships
-    // relationship should be "behaviours" to query for file behaviour. 
+  pub fn query_file_behaviour(hash_id: &str, relationship: &str, n_results: usize, apikey: &str) -> reqwest::Result<Response> {
+    let url = format!("https://www.virustotal.com/api/v3/files/{hash_id}/{relationship}?limit={n_results}");
+    
+    let builder = ClientBuilder::new()
+                  .build()?.request(Method::POST, url)
+                  .header("x-apikey", apikey);
 
-    let url = format!("https://www.virustotal.com/api/v3/files/{hash_id}/{relationship}?limit=10");
-    Ok(())
+    let request = builder.send()?;
+    Ok(request)
   }
 
   /**Function uploads a file to virus total with the api and returns a response when complete.
@@ -402,9 +586,9 @@ impl VirusTotal {
    *  filename: &str        {The name of the file to upload}
    *  bytes:    Vec<u8>     {The raw bytes of the file}
    *  apikey:    &str        {The virus total api key}
-   * Returns Result<()>
+   * Returns Result<Repsonse>
    */
-  pub fn upload_file(filename: &str, bytes: Vec<u8>, apikey: &str) -> reqwest::Result<()> {
+  pub fn upload_file(filename: &str, bytes: Vec<u8>, apikey: &str) -> reqwest::Result<Response> {
     let url = format!("https://www.virustotal.com/api/v3/files");
     let file_param = format!("file=@{filename}");
 
@@ -420,9 +604,7 @@ impl VirusTotal {
 
     // Send the request and get the response.
     let response = builder.send()?;
-    let text = response.text()?;
-
-    Ok(())
+    Ok(response)
   }
 
   /**Function makes a GET reuqest to the virus total api query a hash for the input file.
@@ -431,7 +613,7 @@ impl VirusTotal {
    *  apikey: &str  {The Virus Total api key}
    * Returns nothing
    */
-  pub fn search_detections(output_data: VtJsonOutput) -> std::io::Result<()> {
+  pub fn search_detections(output_data: FileJsonOutput) -> std::io::Result<()> {
     // Setup a table.
     let mut table = Table::new();
     table.set_header(vec![

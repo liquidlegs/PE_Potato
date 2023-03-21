@@ -2,7 +2,6 @@ mod arguments;
 use arguments::*;
 
 use clap::Parser;
-use goblin::error;
 use std::path::Path;
 use sha256::try_digest;
 
@@ -22,7 +21,7 @@ enum AppState {
  *  args:            Arguments  {Used to query virus total}
  * Returns error::Result<()>
  */
-fn run_av_search(filename_exists: bool, hash_exists: bool, input: String, argc: usize, args: Arguments) -> error::Result<()> {    
+fn run_av_search(filename_exists: bool, hash_exists: bool, input: String, argc: usize, args: Arguments) -> std::result::Result<(), GeneralError> {    
   if filename_exists == true {
     let path = Path::new(&input);
     let hash = try_digest(path)?;
@@ -52,7 +51,7 @@ fn run_av_search(filename_exists: bool, hash_exists: bool, input: String, argc: 
   Ok(())
 }
 
-fn main() -> error::Result<()> {
+fn main() -> std::result::Result<(), GeneralError> {
   let cmdline: Vec<String> = std::env::args().collect();
   let args = Arguments::parse();
   let mut state = AppState::Waiting;

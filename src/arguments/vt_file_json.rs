@@ -140,7 +140,7 @@ pub struct SigmaMatchContextValues {
 
 #[derive(Debug, Clone, Deserialize, Default)]
 #[allow(dead_code)]
-pub struct VtJsonOutput {
+pub struct FileJsonOutput {
   pub data: Option<FileData>,
 }
 
