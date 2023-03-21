@@ -103,11 +103,11 @@ pub struct VtArgs {
   pub resource_details: bool,
 
   #[clap(short = 'R', long, default_value_if("resource-by-type", Some("false"), Some("true")), min_values(0))]
-  /// Display resources by type [TODO]
+  /// Display resources by type
   pub resources_by_type: bool,
 
   #[clap(short, long, default_value_if("yara-rules", Some("false"), Some("true")), min_values(0))]
-  /// Display suggested yara rules [TODO]
+  /// Display suggested yara rules
   pub yara_rules: bool,
 
   #[clap(short = 'S', long, default_value_if("sigma-rules", Some("false"), Some("true")), min_values(0))]
@@ -115,11 +115,11 @@ pub struct VtArgs {
   pub sigma_rules: bool,
 
   #[clap(short, long, default_value_if("names", Some("false"), Some("true")), min_values(0))]
-  /// Display the history of names [TODO]
+  /// Display the history of names
   pub names: bool,
 
   #[clap(short, long, default_value_if("compiler-products", Some("false"), Some("true")), min_values(0))]
-  /// Display compiler products [TODO]
+  /// Display compiler products
   pub compiler_products: bool,
 
   #[clap(short, long, default_value_if("imports", Some("false"), Some("true")), min_values(0))]
@@ -131,7 +131,7 @@ pub struct VtArgs {
   pub exports: bool,
 
   #[clap(short, long, default_value_if("tags", Some("false"), Some("true")), min_values(0))]
-  /// Display tags [TODO]
+  /// Display tags
   pub tags: bool,
 }
 

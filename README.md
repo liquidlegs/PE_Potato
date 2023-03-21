@@ -21,8 +21,13 @@ However, this will change over time.
 - Query Virus Total for:
   - General information
   - Sections
-  - Contained Resources
   - AV Detections
+  - Binary Names
+  - Compiler Products
+  - Yara Rules
+  - Tags
+  - Contained Resources
+  - Contained Resources By Type
 - Query Virus Total via:
   - Generated Hash
   - Manually Entered Hash
@@ -37,13 +42,10 @@ However, this will change over time.
 - Query Virus Total for:
   - Basic Propeties
   - History
-  - Binary Names
-  - Compiler Products
   - Pe Header
   - Sections
   - Imports
   - Exports
-  - Contained Resources By Type
   - Contained Resources By Language
   - Mitre Attack TTP's
   - HTTP requests
