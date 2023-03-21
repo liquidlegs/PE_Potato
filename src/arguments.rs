@@ -236,19 +236,31 @@ impl Arguments {
         let output_data = VirusTotal::parse_response(response.clone());
 
         if av.av == true {
-          VirusTotal::search_detections(output_data.clone())?;
+          if let Some(det) = VirusTotal::search_detections(output_data.clone()) {
+            println!("{det}");
+          }
+          
+          else {
+            println!("No matches found");
+          }
         }
   
         if av.general_info == true {
-          VirusTotal::get_general_info(output_data.clone());
+          if let Some(g) = VirusTotal::get_general_info(output_data.clone()) {
+            println!("{g}");
+          }
         }
 
         if av.sections == true {
-          VirusTotal::get_sections(output_data.clone());
+          if let Some(sect) = VirusTotal::get_sections(output_data.clone()) {
+            println!("{sect}");
+          }
         }
 
         if av.resource_details == true {
-          VirusTotal::get_resource_details(output_data.clone());
+          if let Some(details) = VirusTotal::get_resource_details(output_data.clone()) {
+            println!("{details}");
+          }
         }
 
         if av.resources_by_type == true {
@@ -258,7 +270,9 @@ impl Arguments {
         }
 
         if av.yara_rules  == true {
-          todo!("{}: This option is on the todo list!", style("Error").red().bright());
+          if let Some(yara) = VirusTotal::get_yara_rules(output_data.clone()) {
+            println!("{yara}");
+          }
         }
 
         if av.sigma_rules == true {

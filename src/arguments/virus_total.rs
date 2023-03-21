@@ -12,7 +12,7 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The parsed json response}
    * Returns nothing.
    */
-  pub fn get_resource_details(output_data: FileJsonOutput) -> () {
+  pub fn get_resource_details(output_data: FileJsonOutput) -> Option<Table> {
     let mut table = Table::new();
 
     // Set the table header.
@@ -33,20 +33,7 @@ impl VirusTotal {
     let mut sha = String::new();
     let mut _type = String::new();
 
-    let mut peinfo = PeInfo::default();
-    let mut resources: Vec<ResourceDetails> = Default::default();
-
-    if let Some(data) = output_data.data {
-      if let Some(att) = data.attributes {
-        if let Some(pe) = att.pe_info {
-          peinfo = pe;
-        }
-      }
-    }
-
-    if let Some(r) = peinfo.resource_details {
-      resources = r.clone();
-    }
+    let resources = output_data.data?.attributes?.pe_info?.resource_details?;
 
     // For each column with data.
     for i in resources {
@@ -92,7 +79,7 @@ impl VirusTotal {
       Cell::from(_type).fg(Color::Red),
     ]);
 
-    println!("{table}");
+    Some(table)
   }
 
   /**Function displays detailed information about the section header.
@@ -100,7 +87,7 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The parsed json response}
    * Returns nothing.
    */
-  pub fn get_sections(output_data: FileJsonOutput) -> () {
+  pub fn get_sections(output_data: FileJsonOutput) -> Option<Table> {
     let mut section_table = Table::new();
 
     // Sets the header for the table.
@@ -120,20 +107,12 @@ impl VirusTotal {
     let mut s_entropy = String::new();
     let mut s_md5 = String::new();
 
-    let mut sections: Vec<VtSection> = Default::default();
-    let mut pe = PeInfo::default();
+    let mut pe = output_data.data?.attributes?.pe_info?;
+    let mut sections = pe.sections?;
 
-    if let Some(data) = output_data.data {
-      if let Some(att) = data.attributes {
-        if let Some(s) = att.pe_info {
-          pe = s;
-        }
-      }
-    }
-
-    if let Some(sec) = pe.sections {
-      sections = sec;
-    }
+    // if let Some(sec) = pe.sections {
+    //   sections = sec;
+    // }
 
     // Adds the data to each row.
     for i in sections {
@@ -181,7 +160,7 @@ impl VirusTotal {
       Cell::from(s_md5).fg(Color::Red),
     ]);
 
-    println!("{section_table}");
+    Some(section_table)
   }
 
   pub fn parse_response(response: String) -> FileJsonOutput {
@@ -224,7 +203,7 @@ impl VirusTotal {
    *  cpu:      bool {Tells us whether the cpu is 64 or 32}
    * Returns nothing
    */
-  pub fn get_general_info(output_data: FileJsonOutput) -> () {
+  pub fn get_general_info(output_data: FileJsonOutput) -> Option<Table> {
     let mut table = Table::new();
 
     // Prepares the strings to hold the information to be displayed in the table.
@@ -247,46 +226,44 @@ impl VirusTotal {
     let mut pe_info = PeInfo::default();
     let mut stats = LastAnalysisStats::default();
     
+    let att = output_data.data?.attributes?;
+    
     // Updates each string and structure with data.
-    if let Some(data) = output_data.data {
-      if let Some(att) = data.attributes {
-        if let Some(name) = att.names {
-          names.push_str(name[0].as_str());
-        }
+    if let Some(name) = att.names {
+      names.push_str(name[0].as_str());
+    }
 
-        if let Some(size) = att.size {
-          bin_size = size;
-        }
+    if let Some(size) = att.size {
+      bin_size = size;
+    }
 
-        if let Some(md5) = att.md5 {
-          md5_hash.push_str(md5.as_str());
-        }
+    if let Some(md5) = att.md5 {
+      md5_hash.push_str(md5.as_str());
+    }
 
-        if let Some(sha) = att.sha256 {
-          sha256.push_str(sha.as_str());
-        }
+    if let Some(sha) = att.sha256 {
+      sha256.push_str(sha.as_str());
+    }
 
-        if let Some(detect) = att.detectiteasy {
-          detect_it_easy = detect;
-        }
+    if let Some(detect) = att.detectiteasy {
+      detect_it_easy = detect;
+    }
 
-        if let Some(pe) = att.pe_info {
-          pe_info = pe;
-          
-          if let Some(s) = pe_info.sections {
-            number_of_sections = s.len().clone();
-          }
-        }
+    if let Some(pe) = att.pe_info {
+      pe_info = pe;
+      
+      if let Some(s) = pe_info.sections {
+        number_of_sections = s.len().clone();
+      }
+    }
 
-        if let Some(av) = att.last_analysis_stats {
-          stats = av;
-        }
+    if let Some(av) = att.last_analysis_stats {
+      stats = av;
+    }
 
-        if let Some(threat) = att.popular_threat_classification {
-          if let Some(label) = threat.suggested_threat_label {
-            family.push_str(label.as_str());
-          }
-        }
+    if let Some(threat) = att.popular_threat_classification {
+      if let Some(label) = threat.suggested_threat_label {
+        family.push_str(label.as_str());
       }
     }
 
@@ -361,7 +338,7 @@ impl VirusTotal {
       Cell::from(value_col).fg(Color::DarkCyan),
     ]);
 
-    println!("{table}");
+    Some(table)
   }
 
   /**Function displays all the compiler products for a said binary by parse the response from the virus total api.
@@ -607,36 +584,78 @@ impl VirusTotal {
     Ok(response)
   }
 
+  /**Function displays crowd sources yara rules from the virus total api response in regards to a file hash.
+   * Params:
+   *  output_data: FileJsonOutput {The virus total api response}
+   * Returns Option<Table>
+   */
+  pub fn get_yara_rules(output_data: FileJsonOutput) -> Option<Table> {
+    let mut table = Table::new();
+    let labels = String::from(
+      "Description\nSource\nAuthor\nRuleset_ID\nRuleset_Name\nRule_Name"
+    );
+
+    let mut rows: Vec<Row> = Default::default();
+    let rules = output_data.data?.attributes?.crowdsourced_yara_results?;
+    
+    for i in rules {
+      let mut input = String::new();
+      
+      if let Some(d) = i.description {
+        input.push_str(format!("{}\n", d).as_str());
+      }
+
+      if let Some(s) = i.source {
+        input.push_str(format!("{}\n", s).as_str());
+      }
+
+      if let Some(a) = i.author {
+        input.push_str(format!("{}\n", a).as_str());
+      }
+
+      if let Some(rn) = i.ruleset_name {
+        input.push_str(format!("{}\n", rn).as_str());
+      }
+
+      if let Some(ri) = i.ruleset_id {
+        input.push_str(format!("{}\n", ri).as_str());
+      }
+
+      if let Some(name) = i.rule_name {
+        input.push_str(format!("{}", name).as_str());
+      }
+
+      rows.push(Row::from(vec![
+        Cell::from(labels.as_str()).fg(Color::Yellow),
+        Cell::from(input.as_str()).fg(Color::DarkCyan),
+      ]));
+    }
+
+    table.add_rows(rows);
+
+    Some(table)
+  }
+
   /**Function makes a GET reuqest to the virus total api query a hash for the input file.
    * Params:
    *  hash_id: &str {The file hash}
    *  apikey: &str  {The Virus Total api key}
    * Returns nothing
    */
-  pub fn search_detections(output_data: FileJsonOutput) -> std::io::Result<()> {
+  pub fn search_detections(output_data: FileJsonOutput) -> Option<Table> {
     // Setup a table.
     let mut table = Table::new();
     table.set_header(vec![
       Cell::from("Av_Engine").fg(Color::Yellow),
-      Cell::from("Category").fg(Color::Green),
-      Cell::from("Result").fg(Color::Red),
-      Cell::from("Version").fg(Color::DarkCyan),
-      Cell::from("Method").fg(Color::DarkYellow),
-      Cell::from("Engine_Update").fg(Color::Magenta),
+      Cell::from("Category").fg(Color::Yellow),
+      Cell::from("Result").fg(Color::Yellow),
+      Cell::from("Version").fg(Color::Yellow),
+      Cell::from("Method").fg(Color::Yellow),
+      Cell::from("Engine_Update").fg(Color::Yellow),
     ]);
 
     // Unpack the AnalysisResult struct and construct the table.
-    let mut av: Vec<AVProvider> = Default::default();
-    let mut matches = false;
-
-    if let Some(o) = output_data.data {
-      if let Some(att) = o.attributes {
-        if let Some(results) = att.last_analysis_results {
-          av = Self::get_engine_data(results);
-          matches = true;
-        }
-      }
-    }
+    let mut av: Vec<AVProvider> = Self::get_engine_data(output_data.data?.attributes?.last_analysis_results?);
 
     av.sort();
     for i in av {
@@ -729,15 +748,7 @@ impl VirusTotal {
       table.add_row(row);
     }
 
-    if matches == true {
-      println!("{table}");
-    }
-
-    else {
-      println!("No matches found");
-    }
-
-    Ok(())
+    Some(table)
   }
 
   /**Function unpacks the LastAnalysisResults struct into a vec so user does not have to manually extract data from 82 fields.

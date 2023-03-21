@@ -223,10 +223,10 @@ pub struct DotNetAsm {
   pub resources_va:             Option<usize>,
   pub streams:                  Option<Streams>,
   pub strongname_va:            Option<usize>,
-  pub tables_present_map:       Option<usize>,
+  pub tables_present_map:       Option<String>,
   pub tables_present:           Option<usize>,
-  pub table_rows_map:           Option<String>,
-  pub table_rows_map_log:       Option<String>,
+  pub tables_rows_map:          Option<String>,
+  pub tables_rows_map_log:      Option<String>,
   pub type_defintion_list:      Option<Vec<TypeDefinitionList>>,
   pub unamanaged_method_list:   Option<Vec<UnmanagedMethodList>>,
 }
