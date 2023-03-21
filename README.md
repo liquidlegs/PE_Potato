@@ -23,6 +23,8 @@ However, this will change over time.
   - Sections
   - AV Detections
   - Binary Names
+  - Imports
+  - Exports
   - Compiler Products
   - Yara Rules
   - Tags
@@ -43,9 +45,6 @@ However, this will change over time.
   - Basic Propeties
   - History
   - Pe Header
-  - Sections
-  - Imports
-  - Exports
   - Contained Resources By Language
   - Mitre Attack TTP's
   - HTTP requests

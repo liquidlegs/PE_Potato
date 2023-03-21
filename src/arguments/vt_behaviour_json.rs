@@ -2,9 +2,14 @@ use serde::Deserialize;
 use super::vt_file_json::{Links, AlertContext, SigmaAnalysisResults};
 
 #[derive(Debug, Clone, Default, Deserialize)]
+pub struct BehaviorJsonOutput {
+  pub data: Option<Vec<BehaviourData>>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct MetaData {
-  pub count: usize,
-  pub cursor: String,
+  pub count:          Option<usize>,
+  pub cursor:         Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -18,6 +23,7 @@ pub struct BehaviourData {
 
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct BehaviourAttributes {
+  pub meta:                         Option<MetaData>,
   pub analysis_date:                Option<usize>,
   pub behash:                       Option<String>,
   pub calls_highlighted:            Option<Vec<String>>,
@@ -64,6 +70,14 @@ pub struct BehaviourAttributes {
   pub registry_keys_set:            Option<Vec<RegistryKeys>>,
   pub registry_keys_deleted:        Option<Vec<String>>,
   pub mitre_attack_techniques:      Option<Vec<MitreAttackTechniques>>,
+  pub ip_traffic:                   Option<Vec<IpTraffic>>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct IpTraffic {
+  pub transport_layer_protocol:     Option<String>,
+  pub destination_ip:               Option<String>,
+  pub destination_port:             Option<usize>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -83,8 +97,8 @@ pub struct MitreAttackTechniques {
 
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct RegistryKeys {
-  pub key: String,
-  pub value: String,
+  pub key:         Option<String>,
+  pub value:       Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]

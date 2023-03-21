@@ -1,7 +1,7 @@
 use comfy_table::{Table, Cell, Row, Color};
 use super::{
   vt_file_json::*,
-  ClientBuilder, Method, Response, GeneralError
+  ClientBuilder, Method, Response, GeneralError, vt_behaviour_json::BehaviorJsonOutput
 };
 
 pub struct VirusTotal {}
@@ -186,6 +186,40 @@ impl VirusTotal {
 
     // Receives the data.
     let mut output_data = FileJsonOutput::default();
+    match rx.recv() {
+      Ok(s) => {
+        output_data = s;
+      },
+      Err(_) => {}
+    }
+
+    output_data
+  }
+
+  
+  pub fn parse_behavior_response(response: String) -> BehaviorJsonOutput {
+    // Deserialize the json object in another thread.
+    let (tx, rx) = std::sync::mpsc::channel::<BehaviorJsonOutput>();
+    std::thread::spawn(Box::new(move || {
+      match serde_json::from_str::<BehaviorJsonOutput>(&response) {
+        Ok(s) => {
+
+          // Send the results back to the main thread.
+          match tx.send(s) {
+            Ok(_) => {},
+            Err(e) => {
+              println!("{e}");
+            }
+          }
+        },
+        Err(e) => {
+          println!("{e}");
+        }
+      }
+    }));
+
+    // Receives the data.
+    let mut output_data = BehaviorJsonOutput::default();
     match rx.recv() {
       Ok(s) => {
         output_data = s;
@@ -521,13 +555,113 @@ impl VirusTotal {
     Some(table)
   }
 
+  /**Function displays ip traffic from the virus total api response in regards to a file hash.
+   * Params:
+   *  output_data: BehaviorJsonOutput {The virus total api file behavior response}
+   * Returns Option<Table>
+   */
+  pub fn get_ip_traffic(output_data: BehaviorJsonOutput) -> Option<Table> {
+    let mut table = Table::new();
+    table.set_header(vec![
+      Cell::from("Protocol").fg(Color::Yellow),
+      Cell::from("IP").fg(Color::Yellow),
+      Cell::from("Port").fg(Color::Yellow),
+    ]);
+
+    let mut ip = String::new();
+    let mut port = String::new();
+    let mut proto = String::new();
+
+    // let test = output_data.data?;
+    // for i in ips {
+    //   ip.push_str(format!("{}\n", i.destination_ip?).as_str());
+    //   port.push_str(format!("{}\n", i.destination_port?).as_str());
+    //   proto.push_str(format!("{}\n", i.transport_layer_protocol?).as_str());
+    // }
+
+    ip.pop();
+    port.pop();
+    proto.pop();
+
+    table.add_row(vec![
+      Cell::from(proto).fg(Color::Red),
+      Cell::from(ip).fg(Color::Red),
+      Cell::from(port).fg(Color::Red),
+    ]);
+
+    Some(table)
+  }
+
+  /**Function displays function imports from the virus total api response in regards to a file hash.
+   * Params:
+   *  output_data: FileJsonOutput {The virus total api response}
+   * Returns Option<Table>
+   */
+  pub fn get_imports(output_data: FileJsonOutput) -> Option<Table> {
+    let mut table = Table::new();
+    table.set_header(vec![
+      Cell::from("Name").fg(Color::Yellow),
+      Cell::from("Library").fg(Color::Yellow),
+    ]);
+
+    let mut libs = String::new();
+    let mut names = String::new();
+
+    let imports = output_data.data?.attributes?.pe_info?.import_list?;
+    for i in imports {
+      let lib_name = i.library_name?;
+      let funcs = i.imported_functions?;
+
+      for idx in funcs {
+        libs.push_str(format!("{}\n", lib_name).as_str());
+        names.push_str(format!("{}\n", idx).as_str());
+      }
+    }
+
+    libs.pop();
+    names.pop();
+
+    table.add_row(vec![
+      Cell::from(libs).fg(Color::Red),
+      Cell::from(names).fg(Color::Red),
+    ]);
+
+    Some(table)
+  }
+
+  /**Function displays function imports from the virus total api response in regards to a file hash.
+   * Params:
+   *  output_data: FileJsonOutput {The virus total api response}
+   * Returns Option<Table>
+   */
+  pub fn get_exports(output_data: FileJsonOutput) -> Option<Table> {
+    let mut table = Table::new();
+    table.set_header(vec![
+      Cell::from("").fg(Color::Yellow),
+    ]);
+
+    let mut names = String::new();
+    let exports = output_data.data?.attributes?.pe_info?.exports?;
+    
+    for i in exports {
+      names.push_str(format!("{i}\n").as_str());
+    }
+
+    names.pop();
+    table.add_row(vec![
+      Cell::from(names).fg(Color::Red),
+    ]);
+
+    Some(table)
+  }
+  
   /**Function queries the virus total api and returns a string with the json response.
    * Params:
    *  hash_id: &str {The hash to query}
    *  apikey: &str  {The users api key}
    * Returns String
    */
-  pub fn query_api(hash_id: &str, apikey: &str) -> String {
+  pub fn query_file_attributes(hash_id: &str, apikey: &str) -> String {
     let base_url = format!("https://www.virustotal.com/api/v3/files/{hash_id}");
   
     let builder = ClientBuilder::new()

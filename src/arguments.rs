@@ -123,16 +123,28 @@ pub struct VtArgs {
   pub compiler_products: bool,
 
   #[clap(short, long, default_value_if("imports", Some("false"), Some("true")), min_values(0))]
-  /// Display imported functions [TODO]
+  /// Display imported functions
   pub imports: bool,
 
   #[clap(short, long, default_value_if("exports", Some("false"), Some("true")), min_values(0))]
-  /// Display exported functions [TODO]
+  /// Display exported functions
   pub exports: bool,
 
   #[clap(short, long, default_value_if("tags", Some("false"), Some("true")), min_values(0))]
   /// Display tags
   pub tags: bool,
+
+  #[clap(long = "mtact", default_value_if("mtact", Some("false"), Some("true")), min_values(0))]
+  /// Display mitre attack tactics releating to a file. [TODO]
+  pub mitre_tactics: bool,
+  
+  #[clap(long = "mtech", default_value_if("mtech", Some("false"), Some("true")), min_values(0))]
+  /// Display mitre attack techniques relating to a file. [TODO]
+  pub mitre_techniques: bool,
+
+  #[clap(long, default_value_if("ipt", Some("false"), Some("true")), min_values(0))]
+  /// Displays ip traffic
+  pub ipt: bool,
 }
 
 impl VtArgs {
@@ -151,6 +163,9 @@ impl VtArgs {
     if self.imports == true                 { count += 1; }
     if self.exports == true                 { count += 1; }
     if self.tags == true                    { count += 1; }
+    if self.mitre_tactics  == true          { count += 1; }
+    if self.mitre_techniques  == true       { count += 1; }
+    if self.ipt  == true                    { count += 1; }
 
     count
   }
@@ -232,11 +247,14 @@ impl Arguments {
           println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
         }
 
-        let response = VirusTotal::query_api(&settings.file_hash, &settings.api_key);
-        let output_data = VirusTotal::parse_response(response.clone());
+        let f_resp = VirusTotal::query_file_attributes(&settings.file_hash, &settings.api_key);
+        let file_att = VirusTotal::parse_response(f_resp.clone());
+        // let b_resp = VirusTotal::query_file_behaviour(&settings.file_hash, "behaviors", 10, &settings.api_key)?;
+        // let test = b_resp.text()?;
+        // let behavior_att = VirusTotal::parse_behavior_response(test.clone());
 
         if av.av == true {
-          if let Some(det) = VirusTotal::search_detections(output_data.clone()) {
+          if let Some(det) = VirusTotal::search_detections(file_att.clone()) {
             println!("{det}");
           }
           
@@ -246,31 +264,31 @@ impl Arguments {
         }
   
         if av.general_info == true {
-          if let Some(g) = VirusTotal::get_general_info(output_data.clone()) {
+          if let Some(g) = VirusTotal::get_general_info(file_att.clone()) {
             println!("{g}");
           }
         }
 
         if av.sections == true {
-          if let Some(sect) = VirusTotal::get_sections(output_data.clone()) {
+          if let Some(sect) = VirusTotal::get_sections(file_att.clone()) {
             println!("{sect}");
           }
         }
 
         if av.resource_details == true {
-          if let Some(details) = VirusTotal::get_resource_details(output_data.clone()) {
+          if let Some(details) = VirusTotal::get_resource_details(file_att.clone()) {
             println!("{details}");
           }
         }
 
         if av.resources_by_type == true {
-          if let Some(rs) = VirusTotal::get_resource_by_type(output_data.clone()) {
+          if let Some(rs) = VirusTotal::get_resource_by_type(file_att.clone()) {
             println!("{rs}");
           }
         }
 
         if av.yara_rules  == true {
-          if let Some(yara) = VirusTotal::get_yara_rules(output_data.clone()) {
+          if let Some(yara) = VirusTotal::get_yara_rules(file_att.clone()) {
             println!("{yara}");
           }
         }
@@ -280,32 +298,48 @@ impl Arguments {
         }
 
         if av.names == true {
-          if let Some(n) = VirusTotal::get_file_names(output_data.clone()) {
+          if let Some(n) = VirusTotal::get_file_names(file_att.clone()) {
             println!("{n}");
           }
         }
 
         if av.compiler_products == true {
-          if let Some(c) = VirusTotal::get_compiler_products(output_data.clone()) {
+          if let Some(c) = VirusTotal::get_compiler_products(file_att.clone()) {
             println!("{c}");
           }
         }
 
         if av.imports  == true {
-          todo!("{}: This option is on the todo list!", style("Error").red().bright());
+          if let Some(i) = VirusTotal::get_imports(file_att.clone()) {
+            println!("{i}");
+          }
         }
 
         if av.exports == true {
-          todo!("{}: This option is on the todo list!", style("Error").red().bright());
+          if let Some(ex) = VirusTotal::get_exports(file_att.clone()) {
+            println!("{ex}");
+          }
         } 
 
         if av.tags == true {
-          if let Some(tags) = VirusTotal::get_tags(output_data.clone()) {
+          if let Some(tags) = VirusTotal::get_tags(file_att.clone()) {
             println!("{tags}");
           }
         }
 
-        // let behaviour = VirusTotal::query_file_behaviour("", "", 10, "")?;
+        if av.ipt == true {
+          // if let Some(ip) = VirusTotal::get_ip_traffic(behavior_att.clone()) {
+          //   println!("{ip}");
+          // }
+        }
+
+        if av.mitre_tactics == true {
+          todo!("Soon to be implemented");
+        }
+
+        if av.mitre_techniques == true {
+          todo!("Soon to be implemented");
+        }
       }
 
       else {
