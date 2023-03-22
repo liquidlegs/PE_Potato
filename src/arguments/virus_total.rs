@@ -1,8 +1,15 @@
 use comfy_table::{Table, Cell, Row, Color};
 use super::{
   vt_file_json::*,
-  ClientBuilder, Method, Response, GeneralError, vt_behaviour_json::BehaviorJsonOutput
+  ClientBuilder, Method, Response, 
+  GeneralError, vt_behaviour_json::{BehaviorJsonOutput, IpTraffic, HttpConversations, MitreAttackTechniques},
 };
+
+#[derive(Debug, Clone, Default)]
+pub struct VtArgType {
+  pub attributes: bool,
+  pub behaviour: bool,
+}
 
 pub struct VirusTotal {}
 impl VirusTotal {
@@ -563,30 +570,166 @@ impl VirusTotal {
   pub fn get_ip_traffic(output_data: BehaviorJsonOutput) -> Option<Table> {
     let mut table = Table::new();
     table.set_header(vec![
-      Cell::from("Protocol").fg(Color::Yellow),
       Cell::from("IP").fg(Color::Yellow),
       Cell::from("Port").fg(Color::Yellow),
+      Cell::from("Protocol").fg(Color::Yellow),
     ]);
 
     let mut ip = String::new();
     let mut port = String::new();
     let mut proto = String::new();
 
-    // let test = output_data.data?;
-    // for i in ips {
-    //   ip.push_str(format!("{}\n", i.destination_ip?).as_str());
-    //   port.push_str(format!("{}\n", i.destination_port?).as_str());
-    //   proto.push_str(format!("{}\n", i.transport_layer_protocol?).as_str());
-    // }
+    let data = output_data.data?;
+    for i in data {
+      let mut traffic: Vec<IpTraffic> = Default::default();
+      if let Some(t) = i.attributes?.ip_traffic {
+        traffic = t;
+      }
+
+      for idx in traffic {
+        if let Some(ipp) = idx.destination_ip {
+          ip.push_str(format!("{ipp}\n").as_str());
+        }
+
+        if let Some(p) = idx.destination_port {
+          port.push_str(format!("{}\n", p).as_str());
+        }
+
+        if let Some(pro) = idx.transport_layer_protocol {
+          proto.push_str(format!("{}\n", pro).as_str());
+        }
+      }
+    }
 
     ip.pop();
     port.pop();
     proto.pop();
 
     table.add_row(vec![
-      Cell::from(proto).fg(Color::Red),
       Cell::from(ip).fg(Color::Red),
       Cell::from(port).fg(Color::Red),
+      Cell::from(proto).fg(Color::Red),
+    ]);
+
+    Some(table)
+  }
+
+  /**Function displays http coversations from the virus total api response in regards to a file hash.
+   * Params:
+   *  output_data: BehaviorJsonOutput {The virus total api file behavior response}
+   * Returns Option<Table>
+   */
+  pub fn get_http_conv(output_data: BehaviorJsonOutput) -> Option<Table> {
+    let mut table = Table::new();
+    table.set_header(vec![
+      Cell::from("Method").fg(Color::Yellow),
+      Cell::from("Url").fg(Color::Yellow),
+      Cell::from("Status_code").fg(Color::Yellow),
+    ]);
+
+    let mut method = String::new();
+    let mut urls = String::new();
+    let mut status = String::new();
+
+    let data = output_data.data?;
+    for i in data {
+      
+      let mut conv: Vec<HttpConversations> = Default::default();
+      if let Some(h) = i.attributes?.http_conversations {
+        conv = h;
+      }
+
+      for idx in conv {
+        if let Some(m) = idx.request_method {
+          method.push_str(format!("{m}\n").as_str());
+        }
+
+        if let Some(u) = idx.url {
+          urls.push_str(format!("{u}\n").as_str());
+        }
+
+        if let Some(s) = idx.response_status_code {
+          status.push_str(format!("{s}\n").as_str());
+        }
+      }
+    }
+
+    if method.len() < 1 && urls.len() < 1 && status.len() < 1 {
+      return None;
+    }
+
+    method.pop();
+    urls.pop();
+    status.pop();
+
+    table.add_row(vec![
+      Cell::from(method).fg(Color::Red),
+      Cell::from(urls).fg(Color::Red),
+      Cell::from(status).fg(Color::Red),
+    ]);
+
+    Some(table)
+  }
+
+  /**Function displays set registry keys from the virus total api response in regards to a file hash.
+   * Params:
+   *  output_data: FileJsonOutput {The virus total api response}
+   * Returns Option<Table>
+   */
+  pub fn get_registry_keys_set(output_data: BehaviorJsonOutput) -> Option<Table> {
+    let mut table = Table::new();
+  
+    Some(table)  
+  }
+
+  /**Function displays mitre attack techniques and sub techniques from the virus total 
+   * api response in regards to a file hash.
+   * Params:
+   *  output_data: BehaviorJsonOutput {The virus total api file behavior response}
+   * Returns Option<Table>
+   */
+  pub fn get_mitre_attack_techniques(output_data: BehaviorJsonOutput) -> Option<Table> {
+    let mut table = Table::new();
+    table.set_header(vec![
+      Cell::from("id").fg(Color::Yellow),
+      Cell::from("description").fg(Color::Yellow),
+      Cell::from("severity").fg(Color::Yellow),
+    ]);
+
+    let mut ids = String::new();
+    let mut desc = String::new();
+    let mut severity = String::new();
+    let data = output_data.data?;
+
+    for i in data {
+      let mut mitre: Vec<MitreAttackTechniques> = Default::default();
+      if let Some(m) = i.attributes?.mitre_attack_techniques {
+        mitre = m;
+      }
+
+      for idx in mitre {
+        if let Some(i) = idx.id {
+          ids.push_str(format!("{i}\n").as_str());
+        }
+
+        if let Some(d) = idx.signature_description {
+          desc.push_str(format!("{d}\n").as_str());
+        }
+
+        if let Some(s) = idx.severity {
+          severity.push_str(format!("{}\n", s.replace("IMPACT_SEVERITY_", "")).as_str());
+        }
+      }
+    }
+
+    ids.pop();
+    desc.pop();
+    severity.pop();
+
+    table.add_row(vec![
+      Cell::from(ids).fg(Color::Red),
+      Cell::from(desc).fg(Color::Red),
+      Cell::from(severity).fg(Color::Red),
     ]);
 
     Some(table)
@@ -681,15 +824,18 @@ impl VirusTotal {
    *  n_results:     &str       {The number of json objects to return}
    * Returns Result<Response>.
    */
-  pub fn query_file_behaviour(hash_id: &str, relationship: &str, n_results: usize, apikey: &str) -> reqwest::Result<Response> {
-    let url = format!("https://www.virustotal.com/api/v3/files/{hash_id}/{relationship}?limit={n_results}");
+  pub fn query_file_behaviour(hash_id: &str, n_results: usize, apikey: &str) -> std::result::Result<String, GeneralError> {
+    let url = format!("https://www.virustotal.com/api/v3/files/{hash_id}/behaviours?limit={n_results}");
     
     let builder = ClientBuilder::new()
-                  .build()?.request(Method::POST, url)
+                  .build()?.request(Method::GET, url)
+                  .header("accept", "application/json")
                   .header("x-apikey", apikey);
 
     let request = builder.send()?;
-    Ok(request)
+    let text = request.text()?;
+
+    Ok(text)
   }
 
   /**Function uploads a file to virus total with the api and returns a response when complete.

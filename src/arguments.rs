@@ -24,6 +24,9 @@ use reqwest::{
 };
 use custom_error::custom_error;
 
+use self::vt_behaviour_json::BehaviorJsonOutput;
+use self::vt_file_json::FileJsonOutput;
+
 mod vt_file_json;
 mod vt_behaviour_json;
 
@@ -145,9 +148,21 @@ pub struct VtArgs {
   #[clap(long, default_value_if("ipt", Some("false"), Some("true")), min_values(0))]
   /// Displays ip traffic
   pub ipt: bool,
+
+  #[clap(long, default_value_if("http", Some("false"), Some("true")), min_values(0))]
+  /// Display HTTP conversations.
+  pub http: bool,
 }
 
 impl VtArgs {
+
+  /**Function checks if the provided flags or options have been set to true.
+   * This is to prevent the executable from running if a file on the disk or file hash has
+   * been specified, but no options have been provided.
+   * Params:
+   *  &self
+   * Returns usize
+   */
   pub fn count_valid_flags(&self) -> usize {
     let mut count: usize = 0;
     
@@ -166,8 +181,48 @@ impl VtArgs {
     if self.mitre_tactics  == true          { count += 1; }
     if self.mitre_techniques  == true       { count += 1; }
     if self.ipt  == true                    { count += 1; }
+    if self.http == true                    { count += 1; }
 
     count
+  }
+
+  /**Function checks what kinds of options that have been provided to it can determines what api
+   * calls need to be made and what json responses from the Virus Total api need to be parsed.
+   * Params:
+   *  &self
+   * Returns Result<VtArgType, GeneralError>
+   */
+  pub fn check_arg_types(&self) -> std::result::Result<VtArgType, GeneralError> {
+    let mut _type = VtArgType::default();
+    let mut att_count: usize = 0;
+    let mut beh_count: usize = 0;
+
+    if self.av == true                      { att_count += 1; }
+    if self.general_info == true            { att_count += 1; }
+    if self.sections == true                { att_count += 1; }
+    if self.resource_details == true        { att_count += 1; }
+    if self.resources_by_type == true       { att_count += 1; }
+    if self.yara_rules == true              { att_count += 1; }
+    if self.sigma_rules == true             { att_count += 1; }
+    if self.names == true                   { att_count += 1; }
+    if self.compiler_products == true       { att_count += 1; }
+    if self.imports == true                 { att_count += 1; }
+    if self.exports == true                 { att_count += 1; }
+    if self.tags == true                    { att_count += 1; }
+    if self.mitre_tactics  == true          { beh_count += 1; }
+    if self.mitre_techniques  == true       { beh_count += 1; }
+    if self.ipt  == true                    { beh_count += 1; }
+    if self.http == true                    { beh_count += 1; }
+
+    if att_count > 0 {
+      _type.attributes = true;
+    }
+
+    if beh_count > 0 {
+      _type.behaviour = true;
+    }
+
+    Ok(_type)
   }
 }
 
@@ -237,7 +292,7 @@ impl Arguments {
     if settings.auto_search_vt.clone() == true {
       if settings.file_hash.len() > 0 {
         
-        // This will only execute if the specifies a file or a hash with no arguments.
+        // This will only execute a file or a file hash has been specified, but no options have been provided.
         if av.count_valid_flags() < 1 {
           println!("{}: \n\t-f <Path> [OPTIONS]\n\t--vt-hash <Hash> [OPTIONS]", style("Syntax Error").red().bright());
           return Ok(());  
@@ -247,19 +302,25 @@ impl Arguments {
           println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
         }
 
-        let f_resp = VirusTotal::query_file_attributes(&settings.file_hash, &settings.api_key);
-        let file_att = VirusTotal::parse_response(f_resp.clone());
-        // let b_resp = VirusTotal::query_file_behaviour(&settings.file_hash, "behaviors", 10, &settings.api_key)?;
-        // let test = b_resp.text()?;
-        // let behavior_att = VirusTotal::parse_behavior_response(test.clone());
+        let mut file_request = String::new();
+        let mut behaviour_request = String::new();
+        let mut file_att = FileJsonOutput::default();
+        let mut beh_att = BehaviorJsonOutput::default();
+        let arg_types = av.check_arg_types()?;
+
+        if arg_types.attributes == true {
+          file_request.push_str(VirusTotal::query_file_attributes(&settings.file_hash, &settings.api_key).as_str());
+          file_att = VirusTotal::parse_response(file_request.clone());
+        }
+
+        if arg_types.behaviour == true {
+          behaviour_request.push_str(VirusTotal::query_file_behaviour(&settings.file_hash, 10, &settings.api_key)?.as_str());
+          beh_att = VirusTotal::parse_behavior_response(behaviour_request);
+        }
 
         if av.av == true {
           if let Some(det) = VirusTotal::search_detections(file_att.clone()) {
             println!("{det}");
-          }
-          
-          else {
-            println!("No matches found");
           }
         }
   
@@ -328,9 +389,15 @@ impl Arguments {
         }
 
         if av.ipt == true {
-          // if let Some(ip) = VirusTotal::get_ip_traffic(behavior_att.clone()) {
-          //   println!("{ip}");
-          // }
+          if let Some(ip) = VirusTotal::get_ip_traffic(beh_att.clone()) {
+            println!("{ip}");
+          }
+        }
+
+        if av.http == true {
+          if let Some(http) = VirusTotal::get_http_conv(beh_att.clone()) {
+            println!("{http}");
+          }
         }
 
         if av.mitre_tactics == true {
@@ -338,7 +405,9 @@ impl Arguments {
         }
 
         if av.mitre_techniques == true {
-          todo!("Soon to be implemented");
+          if let Some(m) = VirusTotal::get_mitre_attack_techniques(beh_att.clone()) {
+            println!("{m}");
+          }
         }
       }
 

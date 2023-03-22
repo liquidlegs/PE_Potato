@@ -71,6 +71,38 @@ pub struct BehaviourAttributes {
   pub registry_keys_deleted:        Option<Vec<String>>,
   pub mitre_attack_techniques:      Option<Vec<MitreAttackTechniques>>,
   pub ip_traffic:                   Option<Vec<IpTraffic>>,
+  pub http_conversations:           Option<Vec<HttpConversations>>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct HttpConversations {
+  pub request_method:                     Option<String>,
+  pub response_status_code:               Option<usize>,
+  pub response_headers:                   Option<ResponseHeaders>,
+  pub url:                                Option<String>,
+  pub response_body_filetype:             Option<String>,
+  pub request_header:                     Option<RequestHeaders>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct ResponseHeaders {
+  #[serde(rename = "Content-Type")]
+  pub content_type:                   Option<String>,
+
+  #[serde(rename = "Content-Length")]
+  pub content_length:                 Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct RequestHeaders {
+  #[serde(rename = "Content-Type")]
+  pub content_type:             Option<String>,
+  
+  #[serde(rename = "User-Agent")]
+  pub user_agent:               Option<String>,
+  
+  #[serde(rename = "Host")]
+  pub host:                     Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -83,8 +115,8 @@ pub struct IpTraffic {
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct Ref {
   #[serde(rename = "ref")]
-  pub _ref: String,
-  pub values: String,
+  pub _ref:                 Option<String>,
+  pub values:               Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
