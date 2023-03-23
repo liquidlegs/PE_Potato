@@ -28,6 +28,8 @@ However, this will change over time.
   - Compiler Products
   - Yara Rules
   - Tags
+  - HTTP Conversations
+  - IP Traffic
   - Contained Resources
   - Contained Resources By Type
 - Query Virus Total via:
@@ -47,8 +49,6 @@ However, this will change over time.
   - Pe Header
   - Contained Resources By Language
   - Mitre Attack TTP's
-  - HTTP requests
-  - IP Traffic
   - DNS lookups
   - Written and dropped files
   - Set registry keys

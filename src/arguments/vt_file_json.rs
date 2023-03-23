@@ -578,6 +578,18 @@ pub struct ResourceTypes {
   
   #[serde(rename = "RT_VERSION")]
   pub rt_version:       Option<usize>,
+
+  #[serde(rename = "PNG")]
+  pub png:              Option<usize>,
+  
+  #[serde(rename = "MUI")]
+  pub mui:              Option<usize>,
+  
+  #[serde(rename = "TXT")]
+  pub txt:              Option<usize>,
+  
+  #[serde(rename = "XML")]
+  pub xml:              Option<usize>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

@@ -601,6 +601,10 @@ impl VirusTotal {
       }
     }
 
+    if ip.len() < 1 && port.len() < 1 && proto.len() < 1 {
+      return None;
+    }
+
     ip.pop();
     port.pop();
     proto.pop();
