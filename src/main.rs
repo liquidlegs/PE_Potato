@@ -2,6 +2,7 @@ mod arguments;
 use arguments::*;
 
 use clap::Parser;
+use console::style;
 use std::path::Path;
 use sha256::try_digest;
 
@@ -28,11 +29,17 @@ fn run_av_search(filename_exists: bool, hash_exists: bool, input: String, argc: 
     let mut settings = CmdSettings::new(hash);
 
     if argc == 4 {
-      args.vt_search(&mut settings, true)?;
+      match args.vt_search(&mut settings, true) {
+        Ok(_) => {},
+        Err(e) => { println!("{}: {e}", style("Error").red().bright()); }
+      }
     }
 
     else if argc > 4 {
-      args.vt_search(&mut settings, false)?;
+      match args.vt_search(&mut settings, false) {
+        Ok(_) => {},
+        Err(e) => { println!("{}: {e}", style("Error").red().bright()); }
+      }
     }
   }
 
@@ -40,11 +47,17 @@ fn run_av_search(filename_exists: bool, hash_exists: bool, input: String, argc: 
     let mut settings = CmdSettings::new(input);
 
     if argc == 4 {
-      args.vt_search(&mut settings, true)?;
+      match args.vt_search(&mut settings, true) {
+        Ok(_) => {},
+        Err(e) => { println!("{}: {e}", style("Error").red().bright()); }
+      }
     }
 
     else if argc > 4 {
-      args.vt_search(&mut settings, false)?;
+      match args.vt_search(&mut settings, false) {
+        Ok(_) => {},
+        Err(e) => { println!("{}: {e}", style("Error").red().bright()); }
+      }
     }
   }
 

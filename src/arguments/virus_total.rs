@@ -114,12 +114,8 @@ impl VirusTotal {
     let mut s_entropy = String::new();
     let mut s_md5 = String::new();
 
-    let mut pe = output_data.data?.attributes?.pe_info?;
-    let mut sections = pe.sections?;
-
-    // if let Some(sec) = pe.sections {
-    //   sections = sec;
-    // }
+    let pe = output_data.data?.attributes?.pe_info?;
+    let sections = pe.sections?;
 
     // Adds the data to each row.
     for i in sections {
@@ -271,7 +267,9 @@ impl VirusTotal {
     
     // Updates each string and structure with data.
     if let Some(name) = att.names {
-      names.push_str(name[0].as_str());
+      if name.len() > 0 {
+        names.push_str(name[0].as_str());
+      }
     }
 
     if let Some(size) = att.size {

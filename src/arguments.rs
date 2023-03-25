@@ -31,6 +31,7 @@ mod vt_file_json;
 mod vt_behaviour_json;
 
 custom_error! {pub GeneralError
+  Config{src: std::io::Error}                 = "Config file error - {src}",
   Io{source: std::io::Error}                  = "Unable to read file - {source}",
   Request{source: reqwest::Error}             = "Unable to make request - {source}",
   Goblin{source: goblin::error::Error}        = "Unable to parse binary - {source}",
@@ -38,22 +39,32 @@ custom_error! {pub GeneralError
 
 mod config_options {
   pub const CONFIG_FILE: &str = "config.conf";
-  pub const ENABLE_VT_SEARCH: &str = "enable_virustotal_search";
-  pub const API_KEY: &str = "apikey";
+  pub const VT_ENABLE_SEARCH: &str = "virustotal_enable_search";
+  pub const VT_API_KEY: &str = "virustotal_apikey";
+
+  pub const MB_ENABLE_SEARCH: &str = "malwarebazaar_enable_search";
+  pub const MB_API_KEY: &str = "malwarebazaar_apikey";
+  pub const MB_ENABLE_DOWNLOAD: &str = "malwarebazaar_enable_file_download";
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct CmdSettings {
-  pub api_key: String,
-  pub auto_search_vt: bool,
+  pub vt_api_key: String,
+  pub vt_search: bool,
+  pub mb_search: bool,
+  pub mb_download: bool,
+  pub mb_api_key: String,
   pub file_hash: String,
 }
 
 impl CmdSettings {
   pub fn new(file_hash: String) -> Self {
     Self {
-      api_key: String::new(),
-      auto_search_vt: false,
+      vt_api_key: String::new(),
+      mb_api_key: String::new(),
+      vt_search: false,
+      mb_search: false,
+      mb_download: false,
       file_hash: file_hash,
     }
   }
@@ -77,6 +88,50 @@ pub struct Arguments {
 pub enum Action {
   VirusTotal(VtArgs),
   Bin(BinArgs),
+  MalwareBazaar(MbArgs),
+}
+
+#[derive(Args, Debug, Clone, Default)]
+pub struct MbArgs {
+  #[clap(short, long)]
+  /// Provide a file and generate a hash. [TODO]
+  pub file: String,
+
+  #[clap(long)]
+  /// Hash of a file. Can be MD5, SHA256. [TODO]
+  pub mb_hash: String,
+  
+  #[clap(short, long)]
+  /// Download malware sample. [TODO]
+  pub download: String,
+
+  #[clap(short, long, default_value_if("query", Some("false"), Some("true")), min_values(0))]
+  /// Query hash [TODO]
+  pub query_hash: bool,
+
+  #[clap(short, long, default_value_if("tag", Some("false"), Some("true")), min_values(0))]
+  /// Query malware sample by tag. [TODO]
+  pub tag: bool,
+  
+  #[clap(long, default_value_if("filetype", Some("false"), Some("true")), min_values(0))]
+  /// Query malware sample by file type. [TODO]
+  pub filetype: bool,
+  
+  #[clap(short, long, default_value_if("yara", Some("false"), Some("true")), min_values(0))]
+  /// Query a yara rule. [TODO]
+  pub yara: bool,
+}
+
+impl MbArgs {
+  pub fn check_valid_flags(&self) -> usize {
+    let mut count: usize = 0;
+    
+    if self.filetype == true            { count += 1; }
+    if self.query_hash == true          { count += 1; }
+    if self.tag == true                 { count += 1; }
+
+    count
+  }
 }
 
 #[derive(Args, Debug, Clone, Default)]
@@ -289,138 +344,153 @@ impl Arguments {
     // Get the apu key from the config file.
     Self::load_config_file(settings).unwrap();
 
-    if settings.auto_search_vt.clone() == true {
-      if settings.file_hash.len() > 0 {
-        
-        // This will only execute a file or a file hash has been specified, but no options have been provided.
-        if av.count_valid_flags() < 1 {
-          println!("{}: \n\t-f <Path> [OPTIONS]\n\t--vt-hash <Hash> [OPTIONS]", style("Syntax Error").red().bright());
-          return Ok(());  
-        }
+    if settings.vt_search.clone() == false {
+      return Err(GeneralError::Config {
+        src: std::io::Error::new(
+          std::io::ErrorKind::Other, "Virus Total search must be enabled in the config file"
+        )
+      });
+    }
 
-        else {
-          println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
-        }
+    if settings.vt_api_key.clone().len() < 1 {
+      return Err(GeneralError::Config {
+        src: std::io::Error::new(
+          std::io::ErrorKind::Other, "An api key must be supplied in the config file to use the Virus Total api"
+        )
+      });
+    }
 
-        let mut file_request = String::new();
-        let mut behaviour_request = String::new();
-        let mut file_att = FileJsonOutput::default();
-        let mut beh_att = BehaviorJsonOutput::default();
-        let arg_types = av.check_arg_types()?;
 
-        if arg_types.attributes == true {
-          file_request.push_str(VirusTotal::query_file_attributes(&settings.file_hash, &settings.api_key).as_str());
-          file_att = VirusTotal::parse_response(file_request.clone());
-        }
-
-        if arg_types.behaviour == true {
-          behaviour_request.push_str(VirusTotal::query_file_behaviour(&settings.file_hash, 10, &settings.api_key)?.as_str());
-          beh_att = VirusTotal::parse_behavior_response(behaviour_request);
-        }
-
-        if av.av == true {
-          if let Some(det) = VirusTotal::search_detections(file_att.clone()) {
-            println!("{det}");
-          }
-        }
-  
-        if av.general_info == true {
-          if let Some(g) = VirusTotal::get_general_info(file_att.clone()) {
-            println!("{g}");
-          }
-        }
-
-        if av.sections == true {
-          if let Some(sect) = VirusTotal::get_sections(file_att.clone()) {
-            println!("{sect}");
-          }
-        }
-
-        if av.resource_details == true {
-          if let Some(details) = VirusTotal::get_resource_details(file_att.clone()) {
-            println!("{details}");
-          }
-        }
-
-        if av.resources_by_type == true {
-          if let Some(rs) = VirusTotal::get_resource_by_type(file_att.clone()) {
-            println!("{rs}");
-          }
-        }
-
-        if av.yara_rules  == true {
-          if let Some(yara) = VirusTotal::get_yara_rules(file_att.clone()) {
-            println!("{yara}");
-          }
-        }
-
-        if av.sigma_rules == true {
-          todo!("{}: This option is on the todo list!", style("Error").red().bright());
-        }
-
-        if av.names == true {
-          if let Some(n) = VirusTotal::get_file_names(file_att.clone()) {
-            println!("{n}");
-          }
-        }
-
-        if av.compiler_products == true {
-          if let Some(c) = VirusTotal::get_compiler_products(file_att.clone()) {
-            println!("{c}");
-          }
-        }
-
-        if av.imports  == true {
-          if let Some(i) = VirusTotal::get_imports(file_att.clone()) {
-            println!("{i}");
-          }
-        }
-
-        if av.exports == true {
-          if let Some(ex) = VirusTotal::get_exports(file_att.clone()) {
-            println!("{ex}");
-          }
-        } 
-
-        if av.tags == true {
-          if let Some(tags) = VirusTotal::get_tags(file_att.clone()) {
-            println!("{tags}");
-          }
-        }
-
-        if av.ipt == true {
-          if let Some(ip) = VirusTotal::get_ip_traffic(beh_att.clone()) {
-            println!("{ip}");
-          }
-        }
-
-        if av.http == true {
-          if let Some(http) = VirusTotal::get_http_conv(beh_att.clone()) {
-            println!("{http}");
-          }
-        }
-
-        if av.mitre_tactics == true {
-          todo!("Soon to be implemented");
-        }
-
-        if av.mitre_techniques == true {
-          if let Some(m) = VirusTotal::get_mitre_attack_techniques(beh_att.clone()) {
-            println!("{m}");
-          }
-        }
+    if settings.file_hash.len() > 0 {
+      
+      // This will only execute a file or a file hash has been specified, but no options have been provided.
+      if av.count_valid_flags() < 1 {
+        println!("{}: \n\t-f <Path> [OPTIONS]\n\t--vt-hash <Hash> [OPTIONS]", style("Syntax Error").red().bright());
+        return Ok(());  
       }
 
       else {
-        println!("{}: \n\t-f <Path> [OPTIONS]\n\t--vt-hash <Hash> [OPTIONS]", style("Syntax Error").red().bright());
+        println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
+      }
+
+      let mut file_request = String::new();
+      let mut behaviour_request = String::new();
+      let mut file_att = FileJsonOutput::default();
+      let mut beh_att = BehaviorJsonOutput::default();
+      let arg_types = av.check_arg_types()?;
+
+      if arg_types.attributes == true {
+        file_request.push_str(VirusTotal::query_file_attributes(&settings.file_hash, &settings.vt_api_key).as_str());
+        file_att = VirusTotal::parse_response(file_request.clone());
+      }
+
+      if arg_types.behaviour == true {
+        behaviour_request.push_str(VirusTotal::query_file_behaviour(&settings.file_hash, 10, &settings.vt_api_key)?.as_str());
+        beh_att = VirusTotal::parse_behavior_response(behaviour_request);
+      }
+
+      if av.av == true {
+        if let Some(det) = VirusTotal::search_detections(file_att.clone()) {
+          println!("{det}");
+        }
+      }
+
+      if av.general_info == true {
+        if let Some(g) = VirusTotal::get_general_info(file_att.clone()) {
+          println!("{g}");
+        }
+      }
+
+      if av.sections == true {
+        if let Some(sect) = VirusTotal::get_sections(file_att.clone()) {
+          println!("{sect}");
+        }
+      }
+
+      if av.resource_details == true {
+        if let Some(details) = VirusTotal::get_resource_details(file_att.clone()) {
+          println!("{details}");
+        }
+      }
+
+      if av.resources_by_type == true {
+        if let Some(rs) = VirusTotal::get_resource_by_type(file_att.clone()) {
+          println!("{rs}");
+        }
+      }
+
+      if av.yara_rules  == true {
+        if let Some(yara) = VirusTotal::get_yara_rules(file_att.clone()) {
+          println!("{yara}");
+        }
+      }
+
+      if av.sigma_rules == true {
+        todo!("{}: This option is on the todo list!", style("Error").red().bright());
+      }
+
+      if av.names == true {
+        if let Some(n) = VirusTotal::get_file_names(file_att.clone()) {
+          println!("{n}");
+        }
+      }
+
+      if av.compiler_products == true {
+        if let Some(c) = VirusTotal::get_compiler_products(file_att.clone()) {
+          println!("{c}");
+        }
+      }
+
+      if av.imports  == true {
+        if let Some(i) = VirusTotal::get_imports(file_att.clone()) {
+          println!("{i}");
+        }
+      }
+
+      if av.exports == true {
+        if let Some(ex) = VirusTotal::get_exports(file_att.clone()) {
+          println!("{ex}");
+        }
+      } 
+
+      if av.tags == true {
+        if let Some(tags) = VirusTotal::get_tags(file_att.clone()) {
+          println!("{tags}");
+        }
+      }
+
+      if av.ipt == true {
+        if let Some(ip) = VirusTotal::get_ip_traffic(beh_att.clone()) {
+          println!("{ip}");
+        }
+      }
+
+      if av.http == true {
+        if let Some(http) = VirusTotal::get_http_conv(beh_att.clone()) {
+          println!("{http}");
+        }
+      }
+
+      if av.mitre_tactics == true {
+        todo!("Soon to be implemented");
+      }
+
+      if av.mitre_techniques == true {
+        if let Some(m) = VirusTotal::get_mitre_attack_techniques(beh_att.clone()) {
+          println!("{m}");
+        }
       }
     }
 
     else {
-      println!("{}: Virus Total search must be enabled in the config file", style("Error").red().bright());
+      println!("{}: \n\t-f <Path> [OPTIONS]\n\t--vt-hash <Hash> [OPTIONS]", style("Syntax Error").red().bright());
     }
 
     Ok(())
+  }
+
+  pub fn mb_search(&self, settings: &mut CmdSettings) -> () {
+
   }
 
   /**Function displays all data contained in the load file or just some of it in a table as specified by the user.
@@ -1081,40 +1151,63 @@ impl Arguments {
 
       let split_keys: Vec<&str> = line.split('=').collect();
       if split_keys.len() > 1 {
-        Self::parse_config_file(split_keys, settings);
+        Self::parse_config_file(split_keys, settings)?;
       }  
     }
 
-    // println!("{:#?}", settings);
     Ok(())
   }
 
   /**Function parses each option in the config file and verifies if the provided values are correct.
    * Params:
-   *  pair:     Vec<&str>        {The key and the value}
+   *  keys:     Vec<&str>        {The key and the value}
    *  settings: &mut CmdSettings {The config settings}
    * Returns nothing
    */
-  pub fn parse_config_file(pair: Vec<&str>, settings: &mut CmdSettings) -> () {
-    match pair[0] {
-      config_options::ENABLE_VT_SEARCH => {
-        match pair[1] {
-          "true" =>   { settings.auto_search_vt = true; }
-          "false" =>  { settings.auto_search_vt = false; }
+  pub fn parse_config_file(keys: Vec<&str>, settings: &mut CmdSettings) -> std::io::Result<()> {
+    match keys[0] {
+      config_options::VT_ENABLE_SEARCH => {
+        match keys[1] {
+          "true" =>   { settings.vt_search = true; }
+          "false" =>  { settings.vt_search = false; }
           _ =>        {}
         }
       }
 
-      config_options::API_KEY =>                    {
-        if pair[1].len() >= 64 {
-          settings.api_key.push_str(pair[1]);
+      config_options::VT_API_KEY =>                    {
+        if keys[1].len() >= 64 {
+          settings.vt_api_key.push_str(keys[1]);
+        }
+      }
+
+      config_options::MB_ENABLE_SEARCH => {
+        match keys[1] {
+          "true" =>     { settings.mb_search = true; }
+          "false" =>    { settings.mb_search = false; }
+          _ =>          {}
+        }
+      }
+
+      config_options::MB_ENABLE_DOWNLOAD => {
+        match keys[1] {
+          "true" =>   { settings.mb_download = true; }
+          "false" =>  { settings.mb_download = false; }
+          _ =>        {}
+        }
+      }
+
+      config_options::MB_API_KEY => {
+        if keys[1].len() >= 32 {
+          settings.mb_api_key.push_str(keys[1]);
         }
       }
 
       _ => {
-        println!("{}? unknown configuration option", style(pair[1]).yellow().bright());
+        println!("{}? unknown configuration option", style(keys[1]).yellow().bright());
       }
     }
+
+    Ok(())
   }
 
   pub fn is_split_valid(buffer: String) -> SplitType {
