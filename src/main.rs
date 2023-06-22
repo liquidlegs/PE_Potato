@@ -30,14 +30,14 @@ fn run_av_search(filename_exists: bool, hash_exists: bool, input: String, argc: 
     let mut settings = CmdSettings::new(hash, bytes);
 
     if argc == 4 {
-      match args.vt_enable_search(&mut settings, true) {
+      match args.vt_search(&mut settings, true) {
         Ok(_) => {},
         Err(e) => { println!("{}: {e}", style("Error").red().bright()); }
       }
     }
 
     else if argc > 4 {
-      match args.vt_enable_search(&mut settings, false) {
+      match args.vt_search(&mut settings, false) {
         Ok(_) => {},
         Err(e) => { println!("{}: {e}", style("Error").red().bright()); }
       }
@@ -48,14 +48,14 @@ fn run_av_search(filename_exists: bool, hash_exists: bool, input: String, argc: 
     let mut settings = CmdSettings::new(input, Default::default());
 
     if argc == 4 {
-      match args.vt_enable_search(&mut settings, true) {
+      match args.vt_search(&mut settings, true) {
         Ok(_) => {},
         Err(e) => { println!("{}: {e}", style("Error").red().bright()); }
       }
     }
 
     else if argc > 4 {
-      match args.vt_enable_search(&mut settings, false) {
+      match args.vt_search(&mut settings, false) {
         Ok(_) => {},
         Err(e) => { println!("{}: {e}", style("Error").red().bright()); }
       }
@@ -91,15 +91,6 @@ fn main() -> std::result::Result<(), GeneralError> {
           opt_hash.push_str(h.as_str());
           av_hash_exists = true;
           state = AppState::AvSearch;
-        }
-
-        else if av_filename_exists == false && av_hash_exists == false {
-          println!(
-            "\n{}: Please note that search requires a hash to be supplied by specifying [{}], [{}] or by uploading a file with [{}]", 
-            style("Info").yellow().bright(), style("--vt-hash").cyan(), style("-f").cyan(), style("-u").cyan()
-          );
-          
-          std::process::exit(0);
         }
       }
 

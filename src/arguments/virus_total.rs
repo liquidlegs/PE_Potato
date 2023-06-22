@@ -881,9 +881,8 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The virus total api response}
    * Returns Option<Table>
    */
-  #[allow(dead_code)]
-  pub fn get_registry_keys_set(_output_data: BehaviorJsonOutput) -> Option<Table> {
-    let table = Table::new();
+  pub fn get_registry_keys_set(output_data: BehaviorJsonOutput) -> Option<Table> {
+    let mut table = Table::new();
   
     Some(table)  
   }
@@ -1057,7 +1056,7 @@ impl VirusTotal {
       Ok(s) => {
         utf8_string.push_str(s.as_str());
       },
-      Err(_) => {}
+      Err(e) => {}
     }
     
     let url = format!("https://www.virustotal.com/api/v3/files");
