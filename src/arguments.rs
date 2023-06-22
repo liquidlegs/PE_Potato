@@ -1,4 +1,5 @@
 mod virus_total;
+use serde::Deserialize;
 use virus_total::*;
 mod function_backlist;
 use function_backlist::*;
@@ -38,22 +39,14 @@ custom_error! {pub GeneralError
   Goblin{source: goblin::error::Error}        = "Unable to parse binary - {source}",
 }
 
-mod config_options {
-  pub const CONFIG_FILE: &str = "config.conf";
-  pub const VT_ENABLE_SEARCH: &str = "virustotal_enable_search";
-  pub const VT_API_KEY: &str = "virustotal_apikey";
-
-  pub const MB_ENABLE_SEARCH: &str = "malwarebazaar_enable_search";
-  pub const MB_API_KEY: &str = "malwarebazaar_apikey";
-  pub const MB_ENABLE_DOWNLOAD: &str = "malwarebazaar_enable_file_download";
-}
+pub const CONFIG_JSON: &str = "config.json";
 
 #[derive(Debug, Clone, Default)]
 pub struct CmdSettings {
   pub vt_api_key: String,
-  pub vt_search: bool,
-  pub mb_search: bool,
-  pub mb_download: bool,
+  pub vt_enable_search: bool,
+  pub mb_enable_search: bool,
+  pub mb_enable_download: bool,
   pub mb_api_key: String,
   pub file_hash: String,
   pub file_bytes: Vec<u8>,
@@ -64,17 +57,22 @@ impl CmdSettings {
     Self {
       vt_api_key: String::new(),
       mb_api_key: String::new(),
-      vt_search: false,
-      mb_search: false,
-      mb_download: false,
+      vt_enable_search: false,
+      mb_enable_search: false,
+      mb_enable_download: false,
       file_hash: file_hash,
       file_bytes: file_bytes,
     }
   }
+}
 
-  // pub fn test() -> () {
-  //   std::str::Utf8Error
-  // }
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct CmdSettingsJson {
+  pub vt_api_key:   Option<String>,
+  pub vt_enable_search:    Option<bool>,
+  pub mb_enable_search:    Option<bool>,
+  pub mb_enable_download:  Option<bool>,
+  pub mb_api_key:   Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -129,10 +127,11 @@ pub struct MbArgs {
   pub yara: bool,
 
   #[clap(long = "debug", default_value_if("debug", Some("false"), Some("true")), min_values(0))]
-  /// Display debug messages
+  /// Display debug messages [TODO]
   pub debug: bool,
 }
 
+#[allow(dead_code)]
 impl MbArgs {
   pub fn check_valid_flags(&self) -> usize {
     let mut count: usize = 0;
@@ -228,7 +227,7 @@ pub struct VtArgs {
   pub upload: bool,
 
   #[clap(long = "debug", default_value_if("debug", Some("false"), Some("true")), min_values(0))]
-  /// Display debug messages
+  /// Display debug messages [TODO]
   pub debug: bool,
 }
 
@@ -347,7 +346,7 @@ pub struct BinArgs {
   pub directories: bool,
 
   #[clap(long = "debug", default_value_if("debug", Some("false"), Some("true")), min_values(0))]
-  /// Display debug messages
+  /// Display debug messages [TODO]
   pub debug: bool,
 }
 
@@ -361,7 +360,7 @@ impl Arguments {
    *  sh_everything: bool             {When true, will display all information returned from virus total}
    * Returns std::io::Result<()>
    */
-  pub fn vt_search(&self, settings: &mut CmdSettings, sh_everything: bool) -> std::result::Result<(), GeneralError> {
+  pub fn vt_enable_search(&self, settings: &mut CmdSettings, _sh_everything: bool) -> std::result::Result<(), GeneralError> {
     // Create a default struct and then update it.
     let mut av = VtArgs::default();
     if let Some(v) = self.command.clone() {
@@ -375,7 +374,7 @@ impl Arguments {
     // Get the apu key from the config file.
     Self::load_config_file(settings).unwrap();
 
-    if settings.vt_search.clone() == false {
+    if settings.vt_enable_search.clone() == false {
       return Err(GeneralError::Config {
         src: std::io::Error::new(
           std::io::ErrorKind::Other, "Virus Total search must be enabled in the config file"
@@ -409,7 +408,7 @@ impl Arguments {
       let mut file_att = FileJsonOutput::default();
       let mut beh_att = BehaviorJsonOutput::default();
       let arg_types = av.check_arg_types()?;
-      let file_bytes = settings.file_bytes.clone();
+      let _file_bytes = settings.file_bytes.clone();
 
       if arg_types.attributes == true {
         file_request.push_str(VirusTotal::query_file_attributes(&settings.file_hash, &settings.vt_api_key).as_str());
@@ -553,7 +552,8 @@ impl Arguments {
    *  settings: &mut CmdSettings {Contains the file hash and the api key}
    * Returns nothing
    */
-  pub fn mb_search(&self, settings: &mut CmdSettings) -> () {
+  #[allow(dead_code)]
+  pub fn mb_enable_search(&self, _settings: &mut CmdSettings) -> () {
 
   }
 
@@ -1183,120 +1183,60 @@ impl Arguments {
    * Returns Result<()>
    */
   pub fn load_config_file(settings: &mut CmdSettings) -> std::io::Result<()> {
-    let mut string_buf = String::new();
-    let path = Path::new(config_options::CONFIG_FILE);
+    let mut output = String::new();
+    let path = Path::new(CONFIG_JSON);
     let buffer = read(path)?;
 
     match String::from_utf8(buffer) {
       Ok(s) => {
-        string_buf.push_str(s.as_str());
+        output.push_str(s.as_str());
       },
       Err(_) => {}
     }
 
-    let mut split_buffer: Vec<&str> = Default::default();
-    let pattern = Self::is_split_valid(string_buf.clone());
-    match pattern {
-      SplitType::CarriageNewLine => {
-        split_buffer = string_buf.split("\r\n").collect();
+    let mut json_object = CmdSettingsJson::default();
+    match serde_json::from_str::<CmdSettingsJson>(&output.clone()) {
+      Ok(s) => {
+        json_object = s;
+      },
+      Err(e) => {
+        println!("{}: Unable to parse config file {}", style("Error").red().bright(), style(format!("{:?}", e)));
       }
+    };
 
-      SplitType::NewLine =>         {
-        split_buffer = string_buf.split("\n").collect();
-      }
-
-      SplitType::Unknown =>         {
-        
-      }
-    }
-
-    for i in split_buffer.clone() {
-      let line = String::from(i);
-
-      let split_keys: Vec<&str> = line.split('=').collect();
-      if split_keys.len() > 1 {
-        Self::parse_config_file(split_keys, settings)?;
-      }  
-    }
-
+    Self::parse_config_file(settings, &json_object)?;
     Ok(())
   }
 
   /**Function parses each option in the config file and verifies if the provided values are correct.
    * Params:
-   *  keys:     Vec<&str>        {The key and the value}
-   *  settings: &mut CmdSettings {The config settings}
-   * Returns nothing
+   *  settings: &mut CmdSettings            {The config settings}
+   *  json_obj: &mut CmdSettingsJson        {The content of the json config file}
+   * Returns Result<()>
    */
-  pub fn parse_config_file(keys: Vec<&str>, settings: &mut CmdSettings) -> std::io::Result<()> {
-    match keys[0] {
-      config_options::VT_ENABLE_SEARCH => {
-        match keys[1] {
-          "true" =>   { settings.vt_search = true; }
-          "false" =>  { settings.vt_search = false; }
-          _ =>        {}
-        }
+  pub fn parse_config_file(settings: &mut CmdSettings, json_object: &CmdSettingsJson) -> std::io::Result<()> {
+    if let Some(vt_api) = json_object.vt_api_key.clone() {
+      if vt_api.len() >= 32 {
+        settings.vt_api_key.push_str(vt_api.as_str());
       }
+    }
 
-      config_options::VT_API_KEY =>                    {
-        if keys[1].len() >= 64 {
-          settings.vt_api_key.push_str(keys[1]);
-        }
-      }
+    if let Some(vt_enable_search) = json_object.vt_enable_search.clone() {
+      settings.vt_enable_search = vt_enable_search;
+    }
 
-      config_options::MB_ENABLE_SEARCH => {
-        match keys[1] {
-          "true" =>     { settings.mb_search = true; }
-          "false" =>    { settings.mb_search = false; }
-          _ =>          {}
-        }
-      }
+    if let Some(mb_api) = json_object.mb_api_key.clone() {
+      settings.mb_api_key.push_str(mb_api.as_str());
+    }
 
-      config_options::MB_ENABLE_DOWNLOAD => {
-        match keys[1] {
-          "true" =>   { settings.mb_download = true; }
-          "false" =>  { settings.mb_download = false; }
-          _ =>        {}
-        }
-      }
+    if let Some(mb_enable_download) = json_object.mb_enable_download.clone() {
+      settings.mb_enable_download = mb_enable_download;
+    }
 
-      config_options::MB_API_KEY => {
-        if keys[1].len() >= 32 {
-          settings.mb_api_key.push_str(keys[1]);
-        }
-      }
-
-      _ => {
-        println!("{}? unknown configuration option", style(keys[1]).yellow().bright());
-      }
+    if let Some(mb_enable_search) = json_object.mb_enable_search.clone() {
+      settings.mb_enable_search = mb_enable_search;
     }
 
     Ok(())
   }
-
-  /**Function determines how information can be split between each line in a file.
-   * Params:
-   *  buffer: String {The bytes of the file}
-   * Returns SplitType
-   */
-  pub fn is_split_valid(buffer: String) -> SplitType {
-    let mut test_split: Vec<&str> = buffer.split("\r\n").collect();
-    if test_split.len() > 1 {
-      return SplitType::CarriageNewLine;
-    }
-
-    test_split = buffer.split("\n").collect();
-    if test_split.len() > 1 {
-      return SplitType::NewLine;
-    }
-
-    return SplitType::Unknown;
-  }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum SplitType {
-  NewLine,
-  CarriageNewLine,
-  Unknown,
 }
