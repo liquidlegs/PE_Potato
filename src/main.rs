@@ -95,7 +95,7 @@ fn main() -> std::result::Result<(), GeneralError> {
 
         else if av_filename_exists == false && av_hash_exists == false {
           println!(
-            "\n{}: Please note that search requires a hash to be by supplied by specifying [{}], [{}] or by uploading a file with [{}]", 
+            "\n{}: Please note that search requires a hash to be supplied by specifying [{}], [{}] or by uploading a file with [{}]", 
             style("Info").yellow().bright(), style("--vt-hash").cyan(), style("-f").cyan(), style("-u").cyan()
           );
           
