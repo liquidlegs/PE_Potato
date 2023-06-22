@@ -1,8 +1,13 @@
+use std::path::Path;
+use console::style;
+
 use comfy_table::{Table, Cell, Row, Color};
+use reqwest::blocking::Body;
 use super::{
   vt_file_json::*,
   ClientBuilder, Method, Response, 
   GeneralError, vt_behaviour_json::{BehaviorJsonOutput, IpTraffic, HttpConversations, MitreAttackTechniques},
+  experimental_features::*,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -1051,17 +1056,15 @@ impl VirusTotal {
    *  apikey:    &str        {The virus total api key}
    * Returns Result<String, GeneralError>
    */
-  pub fn upload_file(filename: &str, bytes: Vec<u8>, apikey: &str) -> std::result::Result<String, GeneralError> {
-    let mut utf8_string = String::new();
-    match String::from_utf8(bytes) {
-      Ok(s) => {
-        utf8_string.push_str(s.as_str());
-      },
-      Err(_) => {}
+  pub fn upload_file(pathname: String, filename: &str, bytes: Vec<u8>, apikey: &str) -> std::result::Result<String, GeneralError> {    
+    if DISABLE_VT_UPLOAD == true {
+      println!("{}: virus total upload is temporarily an experimental feature and is disabled by default.", style("Error").red().bright());
+      std::process::exit(0);
     }
     
     let url = format!("https://www.virustotal.com/api/v3/files");
-    let file_param = format!("file=@{filename}");
+    let file_param = format!("file={filename}");
+    let body = Body::from(bytes);
 
     // Build the request to upload a file under 32MB.
     let builder = ClientBuilder::new()
@@ -1071,7 +1074,7 @@ impl VirusTotal {
     .header("content-type", "multipart/form-data")
     .header("x-apikey", apikey)
     .form(&file_param)
-    .body(utf8_string);
+    .body(body);
 
     // Send the request and get the response.
     let response = builder.send()?;

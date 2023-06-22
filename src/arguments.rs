@@ -40,16 +40,19 @@ custom_error! {pub GeneralError
 }
 
 pub const CONFIG_JSON: &str = "config.json";
+pub mod experimental_features {
+  pub const DISABLE_VT_UPLOAD: bool = true;
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct CmdSettings {
-  pub vt_api_key: String,
-  pub vt_enable_search: bool,
-  pub mb_enable_search: bool,
+  pub vt_api_key:         String,
+  pub vt_enable_search:   bool,
+  pub mb_enable_search:   bool,
   pub mb_enable_download: bool,
-  pub mb_api_key: String,
-  pub file_hash: String,
-  pub file_bytes: Vec<u8>,
+  pub mb_api_key:         String,
+  pub file_hash:          String,
+  pub file_bytes:         Vec<u8>,
 }
 
 impl CmdSettings {
@@ -222,7 +225,7 @@ pub struct VtArgs {
   /// Get a lis of json structures that were returned by the query.
   pub structure_stats: bool,
 
-  #[clap(short, long, default_value_if("u", Some("false"), Some("true")), min_values(0))]
+  #[clap(short, long, default_value_if("upload", Some("false"), Some("true")), min_values(0))]
   /// Upload a file to virus total.
   pub upload: bool,
 
@@ -262,6 +265,14 @@ impl VtArgs {
     if self.structure_stats == true         { count += 1; }
     if self.upload == true                  { count += 1; }
     if self.debug == true                   { count += 1; }
+    
+    if let Some(_) = self.filename.clone() {
+      count += 1;
+    }
+
+    if let Some(_) = self.vt_hash.clone() {
+      count += 1;
+    }
 
     count
   }
@@ -399,6 +410,7 @@ impl Arguments {
         return Ok(());  
       }
 
+      // insert upload functionaility here.
       else {
         println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
       }
@@ -524,7 +536,12 @@ impl Arguments {
         }
 
         if f_exists == true {
-          let resp =  VirusTotal::upload_file(&settings.file_hash, settings.file_bytes.clone(), &settings.vt_api_key)?;
+          let mut pathname = String::from("");
+          if let Some(s) = av.filename {
+            pathname.push_str(s.as_str());
+          }
+
+          let resp =  VirusTotal::upload_file(pathname, &settings.file_hash, settings.file_bytes.clone(), &settings.vt_api_key)?;
           println!("{resp}");
         }
 

@@ -16,13 +16,16 @@ enum AppState {
 /**Function handles how to add the file hash to the CmdSettings when manually speicified or generated with a file path.
  * Params:
  *  filename_exists: bool       {If true the hash is generated with a file path}
- *  hash_exists:     bool       {If true hash is received from stdin}
+ *  hash_exists:     bool       {If true hash has been received from stdin}
+ *  upload:          bool       {Set to true if uploading to virus total, fIlename should always exist.}
  *  input:           bool       {Input can be either a filepath or a hash received from stdin}
  *  argc:            String     {The number of arguments}
  *  args:            Arguments  {Used to query virus total}
  * Returns error::Result<()>
  */
-fn run_av_search(filename_exists: bool, hash_exists: bool, input: String, argc: usize, args: Arguments) -> std::result::Result<(), GeneralError> {    
+fn run_av_search(filename_exists: bool, hash_exists: bool, input: String, argc: usize, args: Arguments) 
+-> std::result::Result<(), GeneralError> {
+
   if filename_exists == true {
     let path = Path::new(&input);
     let bytes = std::fs::read(&input)?;
@@ -75,12 +78,15 @@ fn main() -> std::result::Result<(), GeneralError> {
 
   let mut av_filename_exists = false;
   let mut av_hash_exists = false;
+  // let mut upload_file = false;
 
   if let Some(a) = args.command.clone() {
     
     // Workout which subcommand was executed.
     match a {
       Action::VirusTotal(f) => {
+        // upload_file = f.upload;
+
         if let Some(h) = f.filename {
           filename.push_str(h.as_str());
           av_filename_exists = true;
@@ -95,7 +101,7 @@ fn main() -> std::result::Result<(), GeneralError> {
 
         else if av_filename_exists == false && av_hash_exists == false {
           println!(
-            "\n{}: Please note that search requires a hash to be supplied by specifying [{}], [{}] or by uploading a file with [{}]", 
+            "\n{}: Please note that search requires a hash/file to be supplied by specifying [{}], [{}] or by uploading a file with [{}]", 
             style("Info").yellow().bright(), style("--vt-hash").cyan(), style("-f").cyan(), style("-u").cyan()
           );
           
@@ -119,6 +125,8 @@ fn main() -> std::result::Result<(), GeneralError> {
 
   // Virus total commands will execute this branch.
   if state == AppState::AvSearch {
+
+    // run_av_search(av_filename_exists, av_hash_exists, upload_file, filename, cmdline.len(), args.clone())?;
     if av_filename_exists == true {
       run_av_search(true, false, filename, cmdline.len(), args.clone())?;
     }
