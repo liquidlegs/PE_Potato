@@ -14,6 +14,209 @@ pub struct VtArgType {
 pub struct VirusTotal {}
 impl VirusTotal {
 
+  #[allow(dead_code, unused_variables, unused_assignments)]
+  pub fn get_structure_stats(file_data: FileJsonOutput, behaviour_data: BehaviorJsonOutput) -> Option<Table> {
+    let mut table = Table::new();
+
+    let mut b_elf_info = false;
+    let mut b_dot_net_assembly = false;
+    let mut b_type_description = false;
+    let mut b_tlsh = false;
+    let mut b_vhash = false;
+    let mut b_trid = false;
+    let mut b_crowdsourced_yara_results = false;
+    let mut b_creation_date = false;
+    let mut b_names = false;
+    let mut b_last_modification_date = false;
+    let mut b_type_tag = false;
+    let mut b_times_submitted = false;
+    let mut b_total_votes = false;
+    let mut b_size = false;
+    let mut b_popular_threat_classification = false;
+    let mut b_authentihash = false;
+    let mut b_detectiteasy = false;
+    let mut b_last_submission_date = false;
+    let mut b_sigma_analysis_results = false;
+    let mut b_meaningful_name = false;
+    let mut b_crowdsourced_ids_stats = false;
+    let mut b_sandbox_verdicts = false;
+    let mut b_sha256 = false;
+    let mut b_type_extension = false;
+    let mut b_tags = false;
+    let mut b_crowdsourced_ids_results = false;
+    let mut b_last_analysis_date = false;
+    let mut b_unique_sources = false;
+    let mut b_first_submission_date = false;
+    let mut b_sha1 = false;
+    let mut b_ssdeep = false;
+    let mut b_md5 = false;
+    let mut b_pe_info = false;
+    let mut b_magic = false;
+    let mut b_last_analysis_stats = false;
+    let mut b_last_analysis_results = false;
+    let mut b_reputation = false;
+
+    let mut labels = String::new();
+    labels.push_str("elf_info\ndot_net_assembly\ntype_description\ntlsh\nvhash\ntrid\ncrowdsourced_yara_results\ncreation_date\nnames");
+    labels.push_str("\nlast_modification_date\ntype_tag\ntimes_submitted\ntotal_votes\nsize\npopular_threat_classification\nauthentihash\ndetectiteasy");
+    labels.push_str("\nlast_submission_date\nsigma_analysis_results\nmeaningful_name\ncrowdsourced_ids_stats\nsandbox_verdicts\nsha256\ntype_extension\ntags\ncrowdsourced_ids_results");
+    labels.push_str("\nlast_analysis_date\nunique_sources\nfirst_submission_date\nsha1\nssdeep\nmd5\npe_info\nmagic\nlast_analysis_stats\nlast_analysis_results\nreputation");
+
+    let f_data = file_data.data?.attributes?;
+    let b_data = behaviour_data.data?;
+
+
+    if let Some(_) = f_data.elf_info                         {
+      b_elf_info = true;
+    }
+
+    if let Some(_) = f_data.dot_net_assembly                 {
+      b_dot_net_assembly = true;
+    }
+
+    if let Some(_) = f_data.type_description                 {
+      b_type_description = true;
+    }
+
+    if let Some(_) = f_data.tlsh                             {
+      b_tlsh = true;
+    }
+
+    if let Some(_) = f_data.vhash                            {
+      b_vhash = true;
+    }
+
+    if let Some(_) = f_data.trid                             {
+      b_trid = true;
+    }
+
+    if let Some(_) = f_data.crowdsourced_yara_results        {
+      b_crowdsourced_yara_results = true;
+    }
+
+    if let Some(_) = f_data.creation_date                    {
+      b_creation_date = true;
+    }
+
+    if let Some(_) = f_data.names                            {
+      b_names = true;
+    }
+
+    if let Some(_) = f_data.last_modification_date           {
+      b_last_modification_date = true;
+    }
+
+    if let Some(_) = f_data.type_tag                         {
+      b_type_tag = true;
+    }
+
+    if let Some(_) = f_data.times_submitted                  {
+      b_times_submitted = true;
+    }
+
+    if let Some(_) = f_data.total_votes                      {
+      b_total_votes = true;
+    }
+
+    if let Some(_) = f_data.size                             {
+      b_size = true;
+    }
+
+    if let Some(_) = f_data.popular_threat_classification    {
+      b_popular_threat_classification = true;
+    }
+
+    if let Some(_) = f_data.authentihash                     {
+      b_authentihash = true;
+    }
+
+    if let Some(_) = f_data.detectiteasy                     {
+      b_detectiteasy = true;
+    }
+
+    if let Some(_) = f_data.last_submission_date             {
+      b_last_submission_date = true;
+    }
+
+    if let Some(_) = f_data.sigma_analysis_results           {
+      b_sigma_analysis_results = true;
+    }
+
+    if let Some(_) = f_data.meaningful_name                  {
+      b_meaningful_name = true;
+    }
+
+    if let Some(_) = f_data.crowdsourced_ids_stats           {
+      b_crowdsourced_ids_stats = true;
+    }
+
+    if let Some(_) = f_data.sandbox_verdicts                 {
+      b_sandbox_verdicts = true;
+    }
+
+    if let Some(_) = f_data.sha256                           {
+      b_sha256 = true;
+    }
+
+    if let Some(_) = f_data.type_extension                   {
+      b_type_extension = true;
+    }
+
+    if let Some(_) = f_data.tags                             {
+      b_tags = true;
+    }
+
+    if let Some(_) = f_data.crowdsourced_ids_results         {
+      b_crowdsourced_ids_results = true;
+    }
+
+    if let Some(_) = f_data.last_analysis_date               {
+      b_last_analysis_date = true;
+    }
+
+    if let Some(_) = f_data.unique_sources                   {
+      b_unique_sources = true;
+    }
+
+    if let Some(_) = f_data.first_submission_date            {
+      b_first_submission_date = true;
+    }
+
+    if let Some(_) = f_data.sha1                             {
+      b_sha1 = true;
+    }
+
+    if let Some(_) = f_data.ssdeep                           {
+      b_ssdeep = true;
+    }
+
+    if let Some(_) = f_data.md5                              {
+      b_md5 = true;
+    }
+
+    if let Some(_) = f_data.pe_info                          {
+      b_pe_info = true;
+    }
+
+    if let Some(_) = f_data.magic                            {
+      b_magic = true;
+    }
+
+    if let Some(_) = f_data.last_analysis_stats              {
+      b_last_analysis_stats = true;
+    }
+
+    if let Some(_) = f_data.last_analysis_results            {
+      b_last_analysis_results = true;
+    }
+
+    if let Some(_) = f_data.reputation                       {
+      b_reputation = true;
+    }
+
+    Some(table)
+  }
+
   /**Function displayed detailed information about each resource in the file.
    * Params:
    *  output_data: FileJsonOutput {The parsed json response}
@@ -845,9 +1048,17 @@ impl VirusTotal {
    *  filename: &str        {The name of the file to upload}
    *  bytes:    Vec<u8>     {The raw bytes of the file}
    *  apikey:    &str        {The virus total api key}
-   * Returns Result<Repsonse>
+   * Returns Result<String, GeneralError>
    */
-  pub fn upload_file(filename: &str, bytes: Vec<u8>, apikey: &str) -> reqwest::Result<Response> {
+  pub fn upload_file(filename: &str, bytes: Vec<u8>, apikey: &str) -> std::result::Result<String, GeneralError> {
+    let mut utf8_string = String::new();
+    match String::from_utf8(bytes) {
+      Ok(s) => {
+        utf8_string.push_str(s.as_str());
+      },
+      Err(e) => {}
+    }
+    
     let url = format!("https://www.virustotal.com/api/v3/files");
     let file_param = format!("file=@{filename}");
 
@@ -859,11 +1070,13 @@ impl VirusTotal {
     .header("content-type", "multipart/form-data")
     .header("x-apikey", apikey)
     .form(&file_param)
-    .body(bytes);
+    .body(utf8_string);
 
     // Send the request and get the response.
     let response = builder.send()?;
-    Ok(response)
+    let text = response.text()?;
+
+    Ok(text)
   }
 
   /**Function displays crowd sources yara rules from the virus total api response in regards to a file hash.

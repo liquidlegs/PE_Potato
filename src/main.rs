@@ -25,8 +25,9 @@ enum AppState {
 fn run_av_search(filename_exists: bool, hash_exists: bool, input: String, argc: usize, args: Arguments) -> std::result::Result<(), GeneralError> {    
   if filename_exists == true {
     let path = Path::new(&input);
+    let bytes = std::fs::read(&input)?;
     let hash = try_digest(path)?;
-    let mut settings = CmdSettings::new(hash);
+    let mut settings = CmdSettings::new(hash, bytes);
 
     if argc == 4 {
       match args.vt_search(&mut settings, true) {
@@ -44,7 +45,7 @@ fn run_av_search(filename_exists: bool, hash_exists: bool, input: String, argc: 
   }
 
   else if hash_exists == true {
-    let mut settings = CmdSettings::new(input);
+    let mut settings = CmdSettings::new(input, Default::default());
 
     if argc == 4 {
       match args.vt_search(&mut settings, true) {
@@ -70,6 +71,7 @@ fn main() -> std::result::Result<(), GeneralError> {
   let mut state = AppState::Waiting;
   let mut filename = String::new();
   let mut opt_hash = String::new();
+  let mut bin_debug = false;
 
   let mut av_filename_exists = false;
   let mut av_hash_exists = false;
@@ -96,6 +98,10 @@ fn main() -> std::result::Result<(), GeneralError> {
         filename.clear();
         filename.push_str(b.filename.clone().as_str());
         state = AppState::BinSearch;
+
+        if b.debug.clone() == true {
+          bin_debug = true;
+        }
       }
 
       _ => {}
@@ -116,10 +122,14 @@ fn main() -> std::result::Result<(), GeneralError> {
   // Local pe parsing with execute this branch.
   else if state == AppState::BinSearch {
 
+    if bin_debug == true {
+      println!("{}: filepath: {}", style("Debug =>").red().bright(), style(filename.clone()).cyan());
+    }
+
     let path = Path::new(&filename);
     let hash = try_digest(path)?;
     
-    let mut settings = CmdSettings::new(hash);
+    let mut settings = CmdSettings::new(hash, Default::default());
     let bytes = std::fs::read(path)?;
     
     if cmdline.len() == 3 {

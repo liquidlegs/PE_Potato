@@ -31,6 +31,7 @@ mod vt_file_json;
 mod vt_behaviour_json;
 
 custom_error! {pub GeneralError
+  VtFlag{flag: std::io::Error}                = "Unable to parse flag - {flag}",
   Config{src: std::io::Error}                 = "Config file error - {src}",
   Io{source: std::io::Error}                  = "Unable to read file - {source}",
   Request{source: reqwest::Error}             = "Unable to make request - {source}",
@@ -55,10 +56,11 @@ pub struct CmdSettings {
   pub mb_download: bool,
   pub mb_api_key: String,
   pub file_hash: String,
+  pub file_bytes: Vec<u8>,
 }
 
 impl CmdSettings {
-  pub fn new(file_hash: String) -> Self {
+  pub fn new(file_hash: String, file_bytes: Vec<u8>) -> Self {
     Self {
       vt_api_key: String::new(),
       mb_api_key: String::new(),
@@ -66,8 +68,13 @@ impl CmdSettings {
       mb_search: false,
       mb_download: false,
       file_hash: file_hash,
+      file_bytes: file_bytes,
     }
   }
+
+  // pub fn test() -> () {
+  //   std::str::Utf8Error
+  // }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -120,6 +127,10 @@ pub struct MbArgs {
   #[clap(short, long, default_value_if("yara", Some("false"), Some("true")), min_values(0))]
   /// Query a yara rule. [TODO]
   pub yara: bool,
+
+  #[clap(long = "debug", default_value_if("debug", Some("false"), Some("true")), min_values(0))]
+  /// Display debug messages
+  pub debug: bool,
 }
 
 impl MbArgs {
@@ -207,6 +218,18 @@ pub struct VtArgs {
   #[clap(long, default_value_if("http", Some("false"), Some("true")), min_values(0))]
   /// Display HTTP conversations.
   pub http: bool,
+
+  #[clap(long = "ss", default_value_if("ss", Some("false"), Some("true")), min_values(0))]
+  /// Get a lis of json structures that were returned by the query.
+  pub structure_stats: bool,
+
+  #[clap(short, long, default_value_if("u", Some("false"), Some("true")), min_values(0))]
+  /// Upload a file to virus total.
+  pub upload: bool,
+
+  #[clap(long = "debug", default_value_if("debug", Some("false"), Some("true")), min_values(0))]
+  /// Display debug messages
+  pub debug: bool,
 }
 
 impl VtArgs {
@@ -237,6 +260,9 @@ impl VtArgs {
     if self.mitre_techniques  == true       { count += 1; }
     if self.ipt  == true                    { count += 1; }
     if self.http == true                    { count += 1; }
+    if self.structure_stats == true         { count += 1; }
+    if self.upload == true                  { count += 1; }
+    if self.debug == true                   { count += 1; }
 
     count
   }
@@ -268,6 +294,7 @@ impl VtArgs {
     if self.mitre_techniques  == true       { beh_count += 1; }
     if self.ipt  == true                    { beh_count += 1; }
     if self.http == true                    { beh_count += 1; }
+    if self.structure_stats == true         { beh_count += 1; }
 
     if att_count > 0 {
       _type.attributes = true;
@@ -318,6 +345,10 @@ pub struct BinArgs {
   #[clap(short, long, default_value_if("directories", Some("false"), Some("true")), min_values(0))]
   /// Display info about directories and tables
   pub directories: bool,
+
+  #[clap(long = "debug", default_value_if("debug", Some("false"), Some("true")), min_values(0))]
+  /// Display debug messages
+  pub debug: bool,
 }
 
 impl Arguments {
@@ -378,6 +409,7 @@ impl Arguments {
       let mut file_att = FileJsonOutput::default();
       let mut beh_att = BehaviorJsonOutput::default();
       let arg_types = av.check_arg_types()?;
+      let file_bytes = settings.file_bytes.clone();
 
       if arg_types.attributes == true {
         file_request.push_str(VirusTotal::query_file_attributes(&settings.file_hash, &settings.vt_api_key).as_str());
@@ -480,6 +512,31 @@ impl Arguments {
           println!("{m}");
         }
       }
+
+      if av.structure_stats == true {
+
+      }
+
+      if av.upload == true {
+        
+        let mut f_exists = false;
+        if let Some(_) = av.filename {
+          f_exists = true;
+        }
+
+        if f_exists == true {
+          let resp =  VirusTotal::upload_file(&settings.file_hash, settings.file_bytes.clone(), &settings.vt_api_key)?;
+          println!("{resp}");
+        }
+
+        else {
+          return Err(GeneralError::VtFlag {
+            flag: std::io::Error::new(
+              std::io::ErrorKind::Other, "You can not upload a sample to Virus Total without specifying the file path"
+            )
+          }); 
+        }
+      }
     }
 
     else {
@@ -489,6 +546,13 @@ impl Arguments {
     Ok(())
   }
 
+  /**Function takes options from the MbArgs struct as sepcified by the user and determines what information
+   * is displayed to the screen.
+   * Params:
+   *  &self
+   *  settings: &mut CmdSettings {Contains the file hash and the api key}
+   * Returns nothing
+   */
   pub fn mb_search(&self, settings: &mut CmdSettings) -> () {
 
   }
@@ -936,7 +1000,7 @@ impl Arguments {
         Ok(s) => {
           section_name = s;
         },
-        Err(e) => {}
+        Err(_) => {}
       }
 
       let mut ptr_rw_data = String::new();
@@ -1210,6 +1274,11 @@ impl Arguments {
     Ok(())
   }
 
+  /**Function determines how information can be split between each line in a file.
+   * Params:
+   *  buffer: String {The bytes of the file}
+   * Returns SplitType
+   */
   pub fn is_split_valid(buffer: String) -> SplitType {
     let mut test_split: Vec<&str> = buffer.split("\r\n").collect();
     if test_split.len() > 1 {
