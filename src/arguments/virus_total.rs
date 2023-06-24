@@ -1,11 +1,11 @@
-use std::path::Path;
 use console::style;
-
+use base64::{Engine as _, engine::general_purpose};
 use comfy_table::{Table, Cell, Row, Color};
-use reqwest::blocking::Body;
+use mime_guess;
+use reqwest::blocking::multipart::{Form, Part};
 use super::{
   vt_file_json::*,
-  ClientBuilder, Method, Response, 
+  ClientBuilder, Method, 
   GeneralError, vt_behaviour_json::{BehaviorJsonOutput, IpTraffic, HttpConversations, MitreAttackTechniques},
   experimental_features::*,
 };
@@ -1049,6 +1049,31 @@ impl VirusTotal {
     Ok(text)
   }
 
+  /**
+   * Function splits the path up into chunks for forward or back slashes
+   * and returns of the last chunk in the array.
+   * Params:
+   *  input: &str {The path}
+   * Returns String
+   */
+  pub fn get_filename_from_path(input: String) -> String {
+    #[allow(unused_assignments)]
+    let mut delim = "";
+    
+    match std::env::consts::OS {
+      "windows" => {
+        delim = "\\";
+      }
+      
+      _ => {
+        delim = "/";
+      }
+    }
+
+    let split_input: Vec<&str> = input.split(delim).collect();
+    String::from(split_input[split_input.len()-1])
+  }
+
   /**Function uploads a file to virus total with the api and returns a response when complete.
    * Params:
    *  filename: &str        {The name of the file to upload}
@@ -1056,27 +1081,37 @@ impl VirusTotal {
    *  apikey:    &str        {The virus total api key}
    * Returns Result<String, GeneralError>
    */
-  pub fn upload_file(pathname: String, filename: &str, bytes: Vec<u8>, apikey: &str) -> std::result::Result<String, GeneralError> {    
+  pub fn upload_file(path: &str, bytes: Vec<u8>, apikey: &str) -> std::result::Result<String, GeneralError> {    
     if DISABLE_VT_UPLOAD == true {
       println!("{}: virus total upload is temporarily an experimental feature and is disabled by default.", style("Error").red().bright());
       std::process::exit(0);
     }
     
     let url = format!("https://www.virustotal.com/api/v3/files");
-    let file_param = format!("file={filename}");
-    let body = Body::from(bytes);
+    let b64_bytes = general_purpose::STANDARD.encode(bytes.clone());  
+    let filename = Self::get_filename_from_path(String::from(path));
+    let content_len = b64_bytes.len();
+    let mime = mime_guess::from_path(path).first_or_text_plain();
+    let sub_mime = mime.subtype().as_str();
+    
+    let form = Form::new()
+    .part(
+      "file", 
+      Part::text(format!("data:{mime}/{sub_mime};name={filename};base64,{b64_bytes}"))
+    );
 
     // Build the request to upload a file under 32MB.
     let builder = ClientBuilder::new()
     .build()?
     .request(Method::POST, url)
-    .header("accept", "application/json")
-    .header("content-type", "multipart/form-data")
+    .header("Accept", "application/json")
+    .header("Host","www.virustotal.com")
+    .header("Content-Type", " multipart/form-data; boundary=")
     .header("x-apikey", apikey)
-    .form(&file_param)
-    .body(body);
+    .header("Content-Length", content_len)
+    .multipart(form);
 
-    // Send the request and get the response.
+    // // Send the request and get the response.
     let response = builder.send()?;
     let text = response.text()?;
 

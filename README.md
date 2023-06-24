@@ -50,6 +50,7 @@ However, this will change over time.
   - Contained Resources By Language
   - Mitre Attack TTP's
   - DNS lookups
+  - Sigma Rules
   - Written and dropped files
   - Set registry keys
   - Process Tree

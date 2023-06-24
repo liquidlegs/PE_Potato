@@ -21,7 +21,7 @@ use std::{
 };
 use comfy_table::{Table, Cell, Row, Color};
 use reqwest::{
-  blocking::{ClientBuilder, Response}, Method
+  blocking::ClientBuilder, Method
 };
 use custom_error::custom_error;
 
@@ -41,7 +41,7 @@ custom_error! {pub GeneralError
 
 pub const CONFIG_JSON: &str = "config.json";
 pub mod experimental_features {
-  pub const DISABLE_VT_UPLOAD: bool = true;
+  pub const DISABLE_VT_UPLOAD: bool = false;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -531,17 +531,15 @@ impl Arguments {
       if av.upload == true {
         
         let mut f_exists = false;
-        if let Some(_) = av.filename {
+        let mut filename = String::from("");
+
+        if let Some(f) = av.filename {
           f_exists = true;
+          filename.push_str(f.as_str());
         }
 
         if f_exists == true {
-          let mut pathname = String::from("");
-          if let Some(s) = av.filename {
-            pathname.push_str(s.as_str());
-          }
-
-          let resp =  VirusTotal::upload_file(pathname, &settings.file_hash, settings.file_bytes.clone(), &settings.vt_api_key)?;
+          let resp =  VirusTotal::upload_file(&filename, settings.file_bytes.clone(), &settings.vt_api_key)?;
           println!("{resp}");
         }
 
