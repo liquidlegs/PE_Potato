@@ -198,11 +198,11 @@ pub struct VtArgs {
   pub imports: bool,
 
   #[clap(short, long, default_value_if("exports", Some("false"), Some("true")), min_values(0))]
-  /// Display exported functions
+  /// Display exported functions.
   pub exports: bool,
 
   #[clap(short, long, default_value_if("tags", Some("false"), Some("true")), min_values(0))]
-  /// Display tags
+  /// Display tags.
   pub tags: bool,
 
   #[clap(long = "mtact", default_value_if("mtact", Some("false"), Some("true")), min_values(0))]
@@ -214,7 +214,7 @@ pub struct VtArgs {
   pub mitre_techniques: bool,
 
   #[clap(long, default_value_if("ipt", Some("false"), Some("true")), min_values(0))]
-  /// Displays ip traffic
+  /// Displays ip traffic.
   pub ipt: bool,
 
   #[clap(long, default_value_if("http", Some("false"), Some("true")), min_values(0))]
@@ -229,9 +229,13 @@ pub struct VtArgs {
   /// Upload a file to virus total.
   pub upload: bool,
 
-  #[clap(long = "debug", default_value_if("debug", Some("false"), Some("true")), min_values(0))]
-  /// Display debug messages [TODO]
+  #[clap(long, default_value_if("debug", Some("false"), Some("true")), min_values(0))]
+  /// Display debug messages. [TODO]
   pub debug: bool,
+
+  #[clap(short, long)]
+  /// Send API requests to an ipaddress:port of your choice.
+  pub web_debug: Option<String>,
 }
 
 impl VtArgs {
@@ -415,6 +419,12 @@ impl Arguments {
         println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
       }
 
+      let mut wdbg = String::new();
+      if let Some(w) = av.web_debug.clone() {
+        wdbg.push_str(w.as_str());
+      }
+
+      let debug = av.debug.clone();
       let mut file_request = String::new();
       let mut behaviour_request = String::new();
       let mut file_att = FileJsonOutput::default();
@@ -539,7 +549,9 @@ impl Arguments {
         }
 
         if f_exists == true {
-          let resp =  VirusTotal::upload_file(&filename, settings.file_bytes.clone(), &settings.vt_api_key)?;
+          let resp =  VirusTotal::upload_file(
+            &filename, settings.file_bytes.len().clone(), &settings.vt_api_key, debug, wdbg.clone()
+          )?;
           println!("{resp}");
         }
 

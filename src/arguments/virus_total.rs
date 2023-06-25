@@ -2,7 +2,7 @@ use console::style;
 use base64::{Engine as _, engine::general_purpose};
 use comfy_table::{Table, Cell, Row, Color};
 use mime_guess;
-use reqwest::blocking::multipart::{Form, Part};
+use reqwest::{blocking::multipart::{Form, Part}, header::{HeaderMap, CONTENT_TYPE, HeaderValue, USER_AGENT, HOST, ACCEPT, CONTENT_LENGTH}};
 use super::{
   vt_file_json::*,
   ClientBuilder, Method, 
@@ -217,6 +217,25 @@ impl VirusTotal {
 
     if let Some(_) = f_data.reputation                       {
       b_reputation = true;
+    }
+
+    Some(table)
+  }
+
+  pub fn get_sigma_rules(output_data: FileJsonOutput) -> Option<Table> {
+    let mut table = Table::new();
+
+    let data = output_data.data?;
+    let sigma = data.attributes?.sigma_analysis_results?;
+
+    for i in sigma {
+      let mut context = SigmaMatchContextValues::default();
+      
+      for idx in i.match_context? {
+        if let Some(v) = idx.values {
+          context = v;
+        }
+      }
     }
 
     Some(table)
@@ -1081,34 +1100,37 @@ impl VirusTotal {
    *  apikey:    &str        {The virus total api key}
    * Returns Result<String, GeneralError>
    */
-  pub fn upload_file(path: &str, bytes: Vec<u8>, apikey: &str) -> std::result::Result<String, GeneralError> {    
+  pub fn upload_file(path: &str, byte_len: usize, apikey: &str, debug: bool, wdbg: String) -> std::result::Result<String, GeneralError> {    
     if DISABLE_VT_UPLOAD == true {
       println!("{}: virus total upload is temporarily an experimental feature and is disabled by default.", style("Error").red().bright());
       std::process::exit(0);
     }
     
-    let url = format!("https://www.virustotal.com/api/v3/files");
-    let b64_bytes = general_purpose::STANDARD.encode(bytes.clone());  
-    let filename = Self::get_filename_from_path(String::from(path));
-    let content_len = b64_bytes.len();
-    let mime = mime_guess::from_path(path).first_or_text_plain();
-    let sub_mime = mime.subtype().as_str();
-    
-    let form = Form::new()
-    .part(
-      "file", 
-      Part::text(format!("data:{mime}/{sub_mime};name={filename};base64,{b64_bytes}"))
-    );
+    let mut url = String::new();
+    let mut host = String::new();
+
+    if debug == true {
+      // Redirect api request to debug server.
+      url.push_str(format!("http://{wdbg}/").as_str());
+      host.push_str(&url[7..url.len()-1]);
+    }
+    else {
+      url.push_str("https://www.virustotal.com/api/v3/files");
+      host.push_str("www.virustotal.com");
+    }
+
+    let content_len = byte_len.clone();
+    let form = Form::new().file("file", path)?;
 
     // Build the request to upload a file under 32MB.
     let builder = ClientBuilder::new()
     .build()?
     .request(Method::POST, url)
-    .header("Accept", "application/json")
-    .header("Host","www.virustotal.com")
-    .header("Content-Type", " multipart/form-data; boundary=")
-    .header("x-apikey", apikey)
-    .header("Content-Length", content_len)
+    .header(ACCEPT, "application/json")
+    .header(HOST, host)
+    .header(USER_AGENT, "PE Potato 0.1.0")
+    .header("X-Apikey", apikey)
+    .header(CONTENT_LENGTH, content_len)
     .multipart(form);
 
     // // Send the request and get the response.

@@ -75,7 +75,7 @@ pub struct SigmaAnalysisResults {         // Type is Option<Vec<T>>
 
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct SigmaMatchContext {
-  pub values: SigmaMatchContextValues,
+  pub values: Option<SigmaMatchContextValues>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
