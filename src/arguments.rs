@@ -40,9 +40,6 @@ custom_error! {pub GeneralError
 }
 
 pub const CONFIG_JSON: &str = "config.json";
-pub mod experimental_features {
-  pub const DISABLE_VT_UPLOAD: bool = false;
-}
 
 #[derive(Debug, Clone, Default)]
 pub struct CmdSettings {
@@ -385,6 +382,14 @@ impl Arguments {
         _ => {}
       }
     }
+
+    // debugging flags.
+    let mut wdbg = String::new();
+    if let Some(w) = av.web_debug.clone() {
+      wdbg.push_str(w.as_str());
+    }
+
+    let debug = av.debug.clone();
     
     // Get the apu key from the config file.
     Self::load_config_file(settings).unwrap();
@@ -414,17 +419,29 @@ impl Arguments {
         return Ok(());  
       }
 
-      // insert upload functionaility here.
       else {
+        // Uploads the file to virus total.
+        // Uploads must be 32MB or less.
+        if av.upload.clone() == true {
+        
+          if let Some(filename) = av.filename.clone() {
+            VirusTotal::upload_file(
+              filename.as_str(), settings.file_bytes.len().clone(), &settings.vt_api_key, debug, wdbg.clone()
+            )?;
+          }
+  
+          else {
+            return Err(GeneralError::VtFlag {
+              flag: std::io::Error::new(
+                std::io::ErrorKind::Other, "You can not upload a sample to Virus Total without specifying the file path"
+              )
+            }); 
+          }
+        }
+
         println!("Querying [{}] on Virus Total", style(settings.file_hash.clone()).cyan());
       }
 
-      let mut wdbg = String::new();
-      if let Some(w) = av.web_debug.clone() {
-        wdbg.push_str(w.as_str());
-      }
-
-      let debug = av.debug.clone();
       let mut file_request = String::new();
       let mut behaviour_request = String::new();
       let mut file_att = FileJsonOutput::default();
@@ -536,32 +553,6 @@ impl Arguments {
 
       if av.structure_stats == true {
 
-      }
-
-      if av.upload == true {
-        
-        let mut f_exists = false;
-        let mut filename = String::from("");
-
-        if let Some(f) = av.filename {
-          f_exists = true;
-          filename.push_str(f.as_str());
-        }
-
-        if f_exists == true {
-          let resp =  VirusTotal::upload_file(
-            &filename, settings.file_bytes.len().clone(), &settings.vt_api_key, debug, wdbg.clone()
-          )?;
-          println!("{resp}");
-        }
-
-        else {
-          return Err(GeneralError::VtFlag {
-            flag: std::io::Error::new(
-              std::io::ErrorKind::Other, "You can not upload a sample to Virus Total without specifying the file path"
-            )
-          }); 
-        }
       }
     }
 

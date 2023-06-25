@@ -1,13 +1,10 @@
 use console::style;
-use base64::{Engine as _, engine::general_purpose};
 use comfy_table::{Table, Cell, Row, Color};
-use mime_guess;
-use reqwest::{blocking::multipart::{Form, Part}, header::{HeaderMap, CONTENT_TYPE, HeaderValue, USER_AGENT, HOST, ACCEPT, CONTENT_LENGTH}};
+use reqwest::{blocking::multipart::Form, header::{USER_AGENT, HOST, ACCEPT, CONTENT_LENGTH}};
 use super::{
   vt_file_json::*,
   ClientBuilder, Method, 
   GeneralError, vt_behaviour_json::{BehaviorJsonOutput, IpTraffic, HttpConversations, MitreAttackTechniques},
-  experimental_features::*,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -222,18 +219,19 @@ impl VirusTotal {
     Some(table)
   }
 
+  #[allow(dead_code)]
   pub fn get_sigma_rules(output_data: FileJsonOutput) -> Option<Table> {
-    let mut table = Table::new();
+    let table = Table::new();
 
     let data = output_data.data?;
     let sigma = data.attributes?.sigma_analysis_results?;
 
     for i in sigma {
-      let mut context = SigmaMatchContextValues::default();
+      let mut _context = SigmaMatchContextValues::default();
       
       for idx in i.match_context? {
         if let Some(v) = idx.values {
-          context = v;
+          _context = v;
         }
       }
     }
@@ -1101,13 +1099,9 @@ impl VirusTotal {
    * Returns Result<String, GeneralError>
    */
   pub fn upload_file(path: &str, byte_len: usize, apikey: &str, debug: bool, wdbg: String) -> std::result::Result<String, GeneralError> {    
-    if DISABLE_VT_UPLOAD == true {
-      println!("{}: virus total upload is temporarily an experimental feature and is disabled by default.", style("Error").red().bright());
-      std::process::exit(0);
-    }
-    
     let mut url = String::new();
     let mut host = String::new();
+    let filename = Self::get_filename_from_path(String::from(path));
 
     if debug == true {
       // Redirect api request to debug server.
@@ -1120,7 +1114,7 @@ impl VirusTotal {
     }
 
     let content_len = byte_len.clone();
-    let form = Form::new().file("file", path)?;
+    let form = Form::new().file("file", path.clone())?;
 
     // Build the request to upload a file under 32MB.
     let builder = ClientBuilder::new()
@@ -1135,7 +1129,32 @@ impl VirusTotal {
 
     // // Send the request and get the response.
     let response = builder.send()?;
+    let status = response.status();
     let text = response.text()?;
+
+    if status.is_success() {
+      println!(
+        "{}: {} uploaded {} to {}", 
+        style("OK").yellow().bright(), style("Successfully").green().bright(), style(filename).red().bright(), 
+        style("virus total").blue().bright()
+      )
+    }
+
+    else if status.is_server_error() {
+      println!(
+        "{}: Unable to upload {} to virus total - Server Error", style("Error").red().bright(), style(filename).red().bright()
+      )
+    }
+
+    else if status.is_client_error() {
+      println!(
+        "{}: Unable to upload {} to virus total - Client Error", style("Error").red().bright(), style(filename).red().bright()
+      )
+    }
+
+    if debug == true {
+      println!("{} status code: {}", style("Debug =>").red().bright(), style(status.as_str()).cyan());
+    }
 
     Ok(text)
   }
