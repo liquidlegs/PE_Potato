@@ -3,6 +3,8 @@ use serde::Deserialize;
 use virus_total::*;
 mod function_backlist;
 use function_backlist::*;
+mod malware_bazaar;
+use malware_bazaar::*;
 
 use clap::{Parser, Args};
 use console::style;
@@ -15,6 +17,7 @@ use goblin::pe::{
   export::Export,
   import::Import,
 };
+use std::default;
 use std::{
   fs::read,
   path::Path,
@@ -96,31 +99,38 @@ pub enum Action {
   MalwareBazaar(MbArgs),
 }
 
+#[derive(Debug, Clone, Default, clap::ValueEnum, PartialEq)]
+pub enum MbQueryType {
+  #[default]
+  Time,
+  Amount,
+}
+
 #[derive(Args, Debug, Clone, Default)]
 pub struct MbArgs {
   #[clap(short, long)]
   /// Provide a file and generate a hash. [TODO]
-  pub file: String,
+  pub file: Option<String>,
 
   #[clap(long)]
-  /// Hash of a file. Can be MD5, SHA256. [TODO]
-  pub mb_hash: String,
+  /// Query a general hash such as md5, sha1 or sha256.
+  pub query_hash: Option<String>,
   
+  #[clap(value_enum, short, long)]
+  /// Query the most recent 100 samples or all samples added in the last hour.
+  pub query_recent: Option<MbQueryType>,
+
   #[clap(short, long)]
   /// Download malware sample. [TODO]
-  pub download: String,
-
-  #[clap(short, long, default_value_if("query", Some("false"), Some("true")), min_values(0))]
-  /// Query hash [TODO]
-  pub query_hash: bool,
+  pub download: Option<String>,
 
   #[clap(short, long, default_value_if("tag", Some("false"), Some("true")), min_values(0))]
   /// Query malware sample by tag. [TODO]
   pub tag: bool,
   
-  #[clap(long, default_value_if("filetype", Some("false"), Some("true")), min_values(0))]
-  /// Query malware sample by file type. [TODO]
-  pub filetype: bool,
+  #[clap(long)]
+  /// Query malware sample by file type [filetype:results] - Eg: docx:30 
+  pub query_filetype: Option<String>,
   
   #[clap(short, long, default_value_if("yara", Some("false"), Some("true")), min_values(0))]
   /// Query a yara rule. [TODO]
@@ -136,9 +146,29 @@ impl MbArgs {
   pub fn check_valid_flags(&self) -> usize {
     let mut count: usize = 0;
     
-    if self.filetype == true            { count += 1; }
-    if self.query_hash == true          { count += 1; }
     if self.tag == true                 { count += 1; }
+    if self.yara == true                { count += 1; }
+    if self.debug == true               { count += 1; }
+    
+    if let Some(_) = self.query_filetype.clone() {
+      count += 1;
+    }
+
+    if let Some(_) = self.file.clone() {
+      count += 1;
+    }
+
+    if let Some(_) = self.query_hash.clone() {
+      count += 1;
+    }
+
+    if let Some(_) = self.download.clone() {
+      count += 1;
+    }
+
+    if let Some(_) = self.query_recent.clone() {
+      count += 1;
+    }
 
     count
   }
@@ -426,7 +456,7 @@ impl Arguments {
         
           if let Some(filename) = av.filename.clone() {
             VirusTotal::upload_file(
-              filename.as_str(), settings.file_bytes.len().clone(), &settings.vt_api_key, debug, wdbg.clone()
+              filename.as_str(), &settings.vt_api_key, debug.clone(), wdbg.clone()
             )?;
           }
   
@@ -571,8 +601,30 @@ impl Arguments {
    * Returns nothing
    */
   #[allow(dead_code)]
-  pub fn mb_enable_search(&self, _settings: &mut CmdSettings) -> () {
+  pub fn mb_enable_search(&self, settings: &mut CmdSettings) -> std::result::Result<(), GeneralError> {
+    Self::load_config_file(settings)?;
+    let mut mb = MbArgs::default();
 
+    if let Some(m) = self.command.clone() {
+      match m {
+        Action::MalwareBazaar(args) => { mb = args; }
+        _ => {}
+      }
+    }
+
+    if let Some(q) = mb.query_recent.clone() {
+      MalwareBazaar::query_recent_samples(&settings.mb_api_key, q)?;
+    }
+
+    if let Some(q) = mb.query_filetype {
+      MalwareBazaar::query_file_type(&settings.mb_api_key, q)?;
+    }
+
+    if let Some(q) = mb.query_hash {
+      MalwareBazaar::query_hash(&settings.mb_api_key, q)?;
+    }
+
+    Ok(())
   }
 
   /**Function displays all data contained in the load file or just some of it in a table as specified by the user.

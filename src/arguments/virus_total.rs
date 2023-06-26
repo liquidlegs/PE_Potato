@@ -1,6 +1,6 @@
 use console::style;
 use comfy_table::{Table, Cell, Row, Color};
-use reqwest::{blocking::multipart::Form, header::{USER_AGENT, HOST, ACCEPT, CONTENT_LENGTH}};
+use reqwest::{blocking::multipart::{Form, Part}, header::{USER_AGENT, HOST, ACCEPT, CONTENT_LENGTH}};
 use super::{
   vt_file_json::*,
   ClientBuilder, Method, 
@@ -1028,8 +1028,8 @@ impl VirusTotal {
   
   /**Function queries the virus total api and returns a string with the json response.
    * Params:
-   *  hash_id: &str {The hash to query}
-   *  apikey: &str  {The users api key}
+   *  hash_id:  &str  {The hash to query}
+   *  apikey:   &str  {The users api key}
    * Returns String
    */
   pub fn query_file_attributes(hash_id: &str, apikey: &str) -> String {
@@ -1093,17 +1093,19 @@ impl VirusTotal {
 
   /**Function uploads a file to virus total with the api and returns a response when complete.
    * Params:
-   *  filename: &str        {The name of the file to upload}
-   *  bytes:    Vec<u8>     {The raw bytes of the file}
-   *  apikey:    &str        {The virus total api key}
+   *  path:     &str    { The file path }
+   *  byte_len: usize   { Length of the file in bytes }
+   *  apikey:   &str    { The virustotal api key }
+   *  debug:    bool    { Display debug messages }
+   *  wdbg:     bool    { Modify the sending address and port }
    * Returns Result<String, GeneralError>
    */
-  pub fn upload_file(path: &str, byte_len: usize, apikey: &str, debug: bool, wdbg: String) -> std::result::Result<String, GeneralError> {    
+  pub fn upload_file(path: &str, apikey: &str, debug: bool, wdbg: String) -> std::result::Result<(), GeneralError> {    
     let mut url = String::new();
     let mut host = String::new();
     let filename = Self::get_filename_from_path(String::from(path));
 
-    if debug == true {
+    if wdbg.len() > 1 {
       // Redirect api request to debug server.
       url.push_str(format!("http://{wdbg}/").as_str());
       host.push_str(&url[7..url.len()-1]);
@@ -1113,10 +1115,17 @@ impl VirusTotal {
       host.push_str("www.virustotal.com");
     }
 
-    let content_len = byte_len.clone();
-    let form = Form::new().file("file", path.clone())?;
+    // Read file into a buffer.
+    println!("{}: Reading file into buffer", style("Info").yellow().bright());
+    let contents = std::fs::read(path.clone())?;
+    let content_len = contents.len().clone();
+    
+    // Add filename and bytes to a multiform in the request.
+    let test = Part::bytes(contents.clone()).file_name(filename.clone());
+    let form = Form::new().part("file", test);
 
     // Build the request to upload a file under 32MB.
+    println!("{}: Building request", style("Info").yellow().bright());
     let builder = ClientBuilder::new()
     .build()?
     .request(Method::POST, url)
@@ -1128,15 +1137,15 @@ impl VirusTotal {
     .multipart(form);
 
     // // Send the request and get the response.
+    println!("{}: Sending request", style("Info").yellow().bright());
     let response = builder.send()?;
     let status = response.status();
-    let text = response.text()?;
-
+    
     if status.is_success() {
       println!(
         "{}: {} uploaded {} to {}", 
         style("OK").yellow().bright(), style("Successfully").green().bright(), style(filename).red().bright(), 
-        style("virus total").blue().bright()
+        style("Virus Total").blue().bright()
       )
     }
 
@@ -1156,7 +1165,7 @@ impl VirusTotal {
       println!("{} status code: {}", style("Debug =>").red().bright(), style(status.as_str()).cyan());
     }
 
-    Ok(text)
+    Ok(())
   }
 
   /**Function displays crowd sources yara rules from the virus total api response in regards to a file hash.

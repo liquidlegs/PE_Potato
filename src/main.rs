@@ -9,6 +9,7 @@ use sha256::try_digest;
 #[derive(Debug, PartialEq)]
 enum AppState {
   AvSearch,
+  MbSearch,
   BinSearch,
   Waiting,
 }
@@ -119,6 +120,10 @@ fn main() -> std::result::Result<(), GeneralError> {
         }
       }
 
+      Action::MalwareBazaar(mb) => {
+        state = AppState::MbSearch;
+      }
+
       _ => {}
     }
   }
@@ -126,7 +131,6 @@ fn main() -> std::result::Result<(), GeneralError> {
   // Virus total commands will execute this branch.
   if state == AppState::AvSearch {
 
-    // run_av_search(av_filename_exists, av_hash_exists, upload_file, filename, cmdline.len(), args.clone())?;
     if av_filename_exists == true {
       run_av_search(true, false, filename, cmdline.len(), args.clone())?;
     }
@@ -134,6 +138,11 @@ fn main() -> std::result::Result<(), GeneralError> {
     else if av_hash_exists == true {
       run_av_search(false, true, opt_hash, cmdline.len(), args.clone())?;
     }
+  }
+
+  else if state == AppState::MbSearch {
+    let mut settings = CmdSettings::new(String::new(), Default::default());
+    args.mb_enable_search(&mut settings)?;
   }
 
   // Local pe parsing with execute this branch.

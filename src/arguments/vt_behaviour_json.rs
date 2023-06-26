@@ -112,14 +112,14 @@ pub struct IpTraffic {
   pub destination_port:             Option<usize>,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Ref {
   #[serde(rename = "ref")]
   pub _ref:                 Option<String>,
   pub values:               Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MitreAttackTechniques {
   pub signature_description:    Option<String>,
   pub id:                       Option<String>,
