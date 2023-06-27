@@ -33,6 +33,7 @@ use self::vt_file_json::FileJsonOutput;
 
 mod vt_file_json;
 mod vt_behaviour_json;
+mod mb_file_json;
 
 custom_error! {pub GeneralError
   VtFlag{flag: std::io::Error}                = "Unable to parse flag - {flag}",
@@ -136,9 +137,13 @@ pub struct MbArgs {
   /// Query a yara rule. [TODO]
   pub yara: bool,
 
-  #[clap(long = "debug", default_value_if("debug", Some("false"), Some("true")), min_values(0))]
+  #[clap(long, default_value_if("debug", Some("false"), Some("true")), min_values(0))]
   /// Display debug messages [TODO]
   pub debug: bool,
+
+  #[clap(short, long, default_value_if("raw_json", Some("false"), Some("true")), min_values(0))]
+  /// Display the raw json response instead of a table.
+  pub raw_json: bool,
 }
 
 #[allow(dead_code)]
@@ -603,25 +608,35 @@ impl Arguments {
   #[allow(dead_code)]
   pub fn mb_enable_search(&self, settings: &mut CmdSettings) -> std::result::Result<(), GeneralError> {
     Self::load_config_file(settings)?;
-    let mut mb = MbArgs::default();
+    let mut mb_args = MbArgs::default();
 
     if let Some(m) = self.command.clone() {
       match m {
-        Action::MalwareBazaar(args) => { mb = args; }
+        Action::MalwareBazaar(args) => { mb_args = args; }
         _ => {}
       }
     }
 
-    if let Some(q) = mb.query_recent.clone() {
+    let mb = MalwareBazaar {
+      debug: mb_args.debug.clone(), 
+      raw_json: mb_args.raw_json.clone(), 
+      api_key: settings.mb_api_key.clone(),
+    };
+
+    if let Some(q) = mb_args.query_recent.clone() {
       MalwareBazaar::query_recent_samples(&settings.mb_api_key, q)?;
     }
 
-    if let Some(q) = mb.query_filetype {
-      MalwareBazaar::query_file_type(&settings.mb_api_key, q)?;
+    if let Some(q) = mb_args.query_filetype {
+      if let Some(t) = mb.get_query_items(q, SearchType::FileType) {
+        println!("{}\n{}", t.title, t.contents);
+      }
     }
 
-    if let Some(q) = mb.query_hash {
-      MalwareBazaar::query_hash(&settings.mb_api_key, q)?;
+    if let Some(q) = mb_args.query_hash {
+      if let Some(_) = mb.get_query_hash(q) {
+
+      }
     }
 
     Ok(())
