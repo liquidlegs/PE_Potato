@@ -1,5 +1,5 @@
 use console::style;
-use comfy_table::{Table, Cell, Row, Color};
+use comfy_table::{Table, Cell, Row, Color, ContentArrangement};
 use reqwest::{blocking::multipart::{Form, Part}, header::{USER_AGENT, HOST, ACCEPT, CONTENT_LENGTH}};
 use super::{
   vt_file_json::*,
@@ -245,7 +245,16 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The parsed json response}
    * Returns nothing.
    */
-  pub fn get_resource_details(output_data: FileJsonOutput) -> Option<Table> {
+  pub fn get_resource_details(output_data: FileJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("Resources")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+    
     let mut table = Table::new();
 
     // Set the table header.
@@ -312,15 +321,29 @@ impl VirusTotal {
       Cell::from(_type).fg(Color::Red),
     ]);
 
-    Some(table)
+    title.set_content_arrangement(comfy_table::ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(comfy_table::ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
 
-  /**Function displays detailed information about the section header.
+  /**Function displays detailed information about the section headers.
    * Params:
    *  output_data: FileJsonOutput {The parsed json response}
-   * Returns nothing.
+   * Returns Option<CombinedTable>
    */
-  pub fn get_sections(output_data: FileJsonOutput) -> Option<Table> {
+  pub fn get_sections(output_data: FileJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("Section Headers")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+    
     let mut section_table = Table::new();
 
     // Sets the header for the table.
@@ -333,63 +356,63 @@ impl VirusTotal {
       Cell::from("MD5").fg(Color::Yellow),
     ]);
 
-    let mut s_names = String::new();
-    let mut s_va = String::new();
-    let mut s_vs = String::new();
-    let mut s_size = String::new();
-    let mut s_entropy = String::new();
-    let mut s_md5 = String::new();
-
     let pe = output_data.data?.attributes?.pe_info?;
     let sections = pe.sections?;
+    let mut rows: Vec<Row> = Default::default();
 
     // Adds the data to each row.
     for i in sections {
+      let mut cells: Vec<Cell> = Default::default();
+
       if let Some(n) = i.name {
-        s_names.push_str(format!("{n}\n").as_str());
+        cells.push(Cell::from(n).fg(Color::Green));
       }
 
       if let Some(virt_a) = i.virtual_address {
-        s_va.push_str(format!("0x{:X}\n", virt_a).as_str());
+        cells.push(Cell::from(format!("0x{:X}", virt_a)).fg(Color::DarkYellow));
       }
 
       if let Some(vsize) = i.virtual_size {
-        s_vs.push_str(format!("0x{:X}\n", vsize).as_str());
+        cells.push(Cell::from(format!("0x{:X}", vsize)).fg(Color::DarkYellow));
       }
 
       if let Some(rs) = i.raw_size {
-        s_size.push_str(format!("{rs}\n").as_str());
+        cells.push(Cell::from(rs).fg(Color::DarkYellow));
       }
 
       if let Some(e) = i.entropy {
-        s_entropy.push_str(format!("{e}\n").as_str());
+        
+        if e < 3.0 {
+          cells.push(Cell::from(format!("{e}")).fg(Color::Blue));
+        }
+
+        else if e > 3.0 && e < 4.5 {
+          cells.push(Cell::from(format!("{e}")).fg(Color::Green));
+        }
+    
+        else if e > 4.5 && e < 7.5 {
+          cells.push(Cell::from(format!("{e}")).fg(Color::DarkYellow));
+        }
+    
+        else if e > 7.5 {
+          cells.push(Cell::from(format!("{e}")).fg(Color::Red));
+        }
       }
 
       if let Some(m) = i.md5 {
-        s_md5.push_str(format!("{m}\n").as_str());
+        cells.push(Cell::from(m).fg(Color::DarkCyan));
       }
       
+      rows.push(Row::from(cells.clone()));
     }
 
-    // Remove the new line character at the end of every string.
-    s_names.pop();
-    s_va.pop();
-    s_vs.pop();
-    s_size.pop();
-    s_entropy.pop();
-    s_md5.pop();
+    section_table.add_rows(rows);
+    title.set_content_arrangement(comfy_table::ContentArrangement::DynamicFullWidth);
+    section_table.set_content_arrangement(comfy_table::ContentArrangement::DynamicFullWidth);
 
-    // Adds each row to the table.
-    section_table.add_row(vec![
-      Cell::from(s_names).fg(Color::Red),
-      Cell::from(s_va).fg(Color::Red),
-      Cell::from(s_vs).fg(Color::Red),
-      Cell::from(s_size).fg(Color::Red),
-      Cell::from(s_entropy).fg(Color::Red),
-      Cell::from(s_md5).fg(Color::Red),
-    ]);
-
-    Some(section_table)
+    out.title = title;
+    out.contents = section_table;
+    Some(out)
   }
 
   pub fn parse_response(response: String) -> FileJsonOutput {
@@ -466,7 +489,16 @@ impl VirusTotal {
    *  cpu:      bool {Tells us whether the cpu is 64 or 32}
    * Returns nothing
    */
-  pub fn get_general_info(output_data: FileJsonOutput) -> Option<Table> {
+  pub fn get_general_info(output_data: FileJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("General Information")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+
     let mut table = Table::new();
 
     // Prepares the strings to hold the information to be displayed in the table.
@@ -478,6 +510,7 @@ impl VirusTotal {
     let mut comp = String::new();
     let mut pack = String::new();
     let mut entropy: f32 = 0.0;
+    let mut entropy_c = Color::Blue;
     let mut number_of_sections: usize = 0;
     let mut family = String::new();
     let mut md5_hash = String::new();
@@ -586,24 +619,84 @@ impl VirusTotal {
       no_detections = av;
     }
 
-    let mut label_col = String::new();      // Will store all labels.
-    let mut value_col = String::new();      // Will store all values.
+    if entropy > 3.0 && entropy < 4.5 {
+      entropy_c = Color::Green;
+    }
 
-    label_col.push_str(
-      format!("FileName\nFileSize\nFileType\nCpu\nSubsystem\nCompiler\nPacker\nSections\nEntropy\nFamily\nDetected\nUndetected\nMD5\nSHA256").as_str()
-    );
+    else if entropy > 4.5 && entropy < 7.5 {
+      entropy_c = Color::DarkYellow;
+    }
 
-    value_col.push_str(
-      format!("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}", 
-      names, bin_size, filetype, arch, subsys, comp, pack, number_of_sections, entropy, family, detections, no_detections, md5_hash, sha256).as_str()
-    );
+    else if entropy > 7.5 {
+      entropy_c = Color::Red;
+    }
 
-    table.add_row(vec![
-      Cell::from(label_col).fg(Color::Yellow),
-      Cell::from(value_col).fg(Color::DarkCyan),
-    ]);
+    let rows = vec![
+      Row::from(vec![
+        Cell::from("FileName").fg(Color::Yellow), Cell::from(names).fg(Color::Green)
+      ]),
 
-    Some(table)
+      Row::from(vec![
+        Cell::from("FileSize").fg(Color::Yellow), Cell::from(format!("{bin_size} (Bytes)")).fg(Color::DarkYellow)
+      ]),
+
+      Row::from(vec![
+        Cell::from("FileType").fg(Color::Yellow), Cell::from(filetype).fg(Color::Green)
+      ]),
+
+      Row::from(vec![
+        Cell::from("CPU").fg(Color::Yellow), Cell::from(arch).fg(Color::DarkCyan)
+      ]),
+
+      Row::from(vec![
+        Cell::from("SubSystem").fg(Color::Yellow), Cell::from(subsys).fg(Color::DarkCyan)
+      ]),
+
+      Row::from(vec![
+        Cell::from("Compiler").fg(Color::Yellow), Cell::from(comp).fg(Color::Blue)
+      ]),
+
+      Row::from(vec![
+        Cell::from("Packer").fg(Color::Yellow), Cell::from(pack).fg(Color::Green)
+      ]),
+
+      Row::from(vec![
+        Cell::from("Sections").fg(Color::Yellow), Cell::from(number_of_sections).fg(Color::DarkYellow)
+      ]),
+
+      Row::from(vec![
+        Cell::from("Entropy").fg(Color::Yellow), Cell::from(entropy).fg(entropy_c)
+      ]),
+
+      Row::from(vec![
+        Cell::from("Family").fg(Color::Yellow), Cell::from(family).fg(Color::Red)
+      ]),
+
+      Row::from(vec![
+        Cell::from("Detected").fg(Color::Yellow), Cell::from(detections).fg(Color::DarkYellow)
+      ]),
+
+      Row::from(vec![
+        Cell::from("Undetected").fg(Color::Yellow), Cell::from(no_detections).fg(Color::DarkYellow)
+      ]),
+
+      Row::from(vec![
+        Cell::from("MD5").fg(Color::Yellow), Cell::from(md5_hash).fg(Color::DarkCyan)
+      ]),
+
+      Row::from(vec![
+        Cell::from("SHA256").fg(Color::Yellow), Cell::from(sha256).fg(Color::DarkCyan)
+      ]),
+    ];
+
+    table.add_rows(rows);
+
+    title.set_content_arrangement(comfy_table::ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(comfy_table::ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
 
   /**Function displays all the compiler products for a said binary by parse the response from the virus total api.
@@ -714,7 +807,16 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The virus total api response}
    * Returns Option<Table>
    */
-  pub fn get_resource_by_type(output_data: FileJsonOutput) -> Option<Table> {
+  pub fn get_resource_by_type(output_data: FileJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("Resource by type")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+    
     let mut table = Table::new();
     table.set_header(vec![
       Cell::from("Resource_Type").fg(Color::Yellow),
@@ -783,7 +885,12 @@ impl VirusTotal {
       Cell::from(count).fg(Color::Red),
     ]);
 
-    Some(table)
+    title.set_content_arrangement(comfy_table::ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(comfy_table::ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
 
   /**Function displays ip traffic from the virus total api response in regards to a file hash.
@@ -1174,51 +1281,100 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The virus total api response}
    * Returns Option<Table>
    */
-  pub fn get_yara_rules(output_data: FileJsonOutput) -> Option<Table> {
+  pub fn get_yara_rules(output_data: FileJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("Yara Rules")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+    
     let mut table = Table::new();
-    let labels = String::from(
-      "Description\nSource\nAuthor\nRuleset_ID\nRuleset_Name\nRule_Name"
-    );
+    // let labels = String::from(
+    //   "Description\nSource\nAuthor\nRuleset_ID\nRuleset_Name\nRule_Name"
+    // );
 
     let mut rows: Vec<Row> = Default::default();
     let rules = output_data.data?.attributes?.crowdsourced_yara_results?;
     
     for i in rules {
-      let mut input = String::new();
+      // let mut input = String::new();
+      let mut description = String::new();
+      let mut source = String::new();
+      let mut author = String::new();
+      let mut ruleset_id = String::new();
+      let mut ruleset_name = String::new();
+      let mut rule_name = String::new();
       
       if let Some(d) = i.description {
-        input.push_str(format!("{}\n", d).as_str());
+        description.push_str(d.as_str());
       }
 
       if let Some(s) = i.source {
-        input.push_str(format!("{}\n", s).as_str());
+        source.push_str(s.as_str());
       }
 
       if let Some(a) = i.author {
-        input.push_str(format!("{}\n", a).as_str());
+        author.push_str(a.as_str());
       }
 
       if let Some(rn) = i.ruleset_name {
-        input.push_str(format!("{}\n", rn).as_str());
+        ruleset_id.push_str(rn.as_str());
       }
 
       if let Some(ri) = i.ruleset_id {
-        input.push_str(format!("{}\n", ri).as_str());
+        ruleset_name.push_str(ri.as_str());
       }
 
       if let Some(name) = i.rule_name {
-        input.push_str(format!("{}", name).as_str());
+        rule_name.push_str(name.as_str());
       }
 
       rows.push(Row::from(vec![
-        Cell::from(labels.as_str()).fg(Color::Yellow),
-        Cell::from(input.as_str()).fg(Color::DarkCyan),
+        Cell::from("Description").fg(Color::Yellow), Cell::from(description).fg(Color::Green)
       ]));
+
+      rows.push(Row::from(vec![
+        Cell::from("Source").fg(Color::Yellow), Cell::from(source).fg(Color::DarkCyan)
+      ]));
+
+      rows.push(Row::from(vec![
+        Cell::from("Author").fg(Color::Yellow), Cell::from(author).fg(Color::Green)
+      ]));
+
+      rows.push(Row::from(vec![
+        Cell::from("Ruleset_ID").fg(Color::Yellow), Cell::from(ruleset_id).fg(Color::Red)
+      ]));
+
+      rows.push(Row::from(vec![
+        Cell::from("Ruleset_Name").fg(Color::Yellow), Cell::from(ruleset_name).fg(Color::DarkYellow)
+      ]));
+
+      rows.push(Row::from(vec![
+        Cell::from("Rule_Name").fg(Color::Yellow), Cell::from(rule_name).fg(Color::Red)
+      ]));
+
+      rows.push(Row::from(vec![
+        Cell::from("").fg(Color::Yellow), Cell::from("").fg(Color::DarkCyan)
+      ]));
+      
+      // rows.push(Row::from(vec![
+      //   Cell::from(labels.as_str()).fg(Color::Yellow),
+      //   Cell::from(input.as_str()).fg(Color::DarkCyan),
+      // ]));
     }
 
+    rows.pop();
     table.add_rows(rows);
 
-    Some(table)
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
 
   /**Function makes a GET reuqest to the virus total api query a hash for the input file.

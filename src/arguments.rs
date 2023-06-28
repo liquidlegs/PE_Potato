@@ -508,31 +508,31 @@ impl Arguments {
 
       if av.general_info == true {
         if let Some(g) = VirusTotal::get_general_info(file_att.clone()) {
-          println!("{g}");
+          println!("{}\n{}", g.title, g.contents);
         }
       }
 
       if av.sections == true {
         if let Some(sect) = VirusTotal::get_sections(file_att.clone()) {
-          println!("{sect}");
+          println!("{}\n{}", sect.title, sect.contents);
         }
       }
 
       if av.resource_details == true {
-        if let Some(details) = VirusTotal::get_resource_details(file_att.clone()) {
-          println!("{details}");
+        if let Some(d) = VirusTotal::get_resource_details(file_att.clone()) {
+          println!("{}\n{}", d.title, d.contents);
         }
       }
 
       if av.resources_by_type == true {
         if let Some(rs) = VirusTotal::get_resource_by_type(file_att.clone()) {
-          println!("{rs}");
+          println!("{}\n{}", rs.title, rs.contents);
         }
       }
 
       if av.yara_rules  == true {
         if let Some(yara) = VirusTotal::get_yara_rules(file_att.clone()) {
-          println!("{yara}");
+          println!("{}\n{}", yara.title, yara.contents);
         }
       }
 
