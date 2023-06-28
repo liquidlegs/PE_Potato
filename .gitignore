@@ -4,6 +4,7 @@
 /backup_src/
 /json/
 config.json
+temp.txt
 
 
 # Remove Cargo.lock from gitignore if creating an executable, leave it for libraries

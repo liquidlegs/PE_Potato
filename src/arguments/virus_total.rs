@@ -5,6 +5,7 @@ use super::{
   vt_file_json::*,
   ClientBuilder, Method, 
   GeneralError, vt_behaviour_json::{BehaviorJsonOutput, IpTraffic, HttpConversations, MitreAttackTechniques},
+  CombinedTable,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -1226,7 +1227,16 @@ impl VirusTotal {
    *  apikey: &str  {The Virus Total api key}
    * Returns nothing
    */
-  pub fn search_detections(output_data: FileJsonOutput) -> Option<Table> {
+  pub fn search_detections(output_data: FileJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("Antivirus Detections")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+
     // Setup a table.
     let mut table = Table::new();
     table.set_header(vec![
@@ -1332,7 +1342,12 @@ impl VirusTotal {
       table.add_row(row);
     }
 
-    Some(table)
+    title.set_content_arrangement(comfy_table::ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(comfy_table::ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
 
   /**Function unpacks the LastAnalysisResults struct into a vec so user does not have to manually extract data from 82 fields.

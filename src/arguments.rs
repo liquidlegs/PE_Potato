@@ -70,6 +70,12 @@ impl CmdSettings {
   }
 }
 
+#[derive(Debug, Default)]
+pub struct CombinedTable {
+  pub title:    Table,
+  pub contents: Table,
+}
+
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct CmdSettingsJson {
   pub vt_api_key:   Option<String>,
@@ -496,7 +502,7 @@ impl Arguments {
 
       if av.av == true {
         if let Some(det) = VirusTotal::search_detections(file_att.clone()) {
-          println!("{det}");
+          println!("{}\n{}", det.title, det.contents);
         }
       }
 
@@ -633,10 +639,15 @@ impl Arguments {
       }
     }
 
+    // shows more detailed information about a single sample.
+    // would like to also show yara rules and vendor intel with this same command.
     if let Some(q) = mb_args.query_hash {
-      if let Some(_) = mb.get_query_hash(q) {
-
+      if let Some(t) = mb.get_query_hash(q) {
+        println!("{}\n{}", t.title, t.contents);
       }
+
+      // call mb.get_query_yararules
+      // call mb.get_vendor_intel
     }
 
     Ok(())
