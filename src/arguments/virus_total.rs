@@ -4,7 +4,7 @@ use reqwest::{blocking::multipart::{Form, Part}, header::{USER_AGENT, HOST, ACCE
 use super::{
   vt_file_json::*,
   ClientBuilder, Method, 
-  GeneralError, vt_behaviour_json::{BehaviorJsonOutput, IpTraffic, HttpConversations, MitreAttackTechniques},
+  GeneralError, vt_behaviour_json::{BehaviorJsonOutput, IpTraffic, HttpConversations, MitreAttackTechniques, BehaviourData},
   CombinedTable,
 };
 
@@ -17,208 +17,383 @@ pub struct VtArgType {
 pub struct VirusTotal {}
 impl VirusTotal {
 
-  #[allow(dead_code, unused_variables, unused_assignments)]
-  pub fn get_structure_stats(file_data: FileJsonOutput, behaviour_data: BehaviorJsonOutput) -> Option<Table> {
+  pub fn get_preset_cell(value: bool) -> Cell {
+    // match "" {
+    //   "true" => {}
+    //   "false" => {}
+    //   _ => {}
+    // }
+    if value == false {
+      return Cell::from("false")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Red);
+    }
+    else {
+      return Cell::from("true")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Green);
+    }
+  }
+
+  pub fn get_preset_row(name: &str, value: bool) -> Row {
+    Row::from(vec![
+      Cell::from(name)
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow),
+      Self::get_preset_cell(value)
+    ])
+  }
+
+  #[allow(dead_code, unused_assignments)]
+  pub fn get_structure_stats(file_data: FileJsonOutput, behaviour_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("Structure Statistics")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+    
     let mut table = Table::new();
-
-    let mut b_elf_info = false;
-    let mut b_dot_net_assembly = false;
-    let mut b_type_description = false;
-    let mut b_tlsh = false;
-    let mut b_vhash = false;
-    let mut b_trid = false;
-    let mut b_crowdsourced_yara_results = false;
-    let mut b_creation_date = false;
-    let mut b_names = false;
-    let mut b_last_modification_date = false;
-    let mut b_type_tag = false;
-    let mut b_times_submitted = false;
-    let mut b_total_votes = false;
-    let mut b_size = false;
-    let mut b_popular_threat_classification = false;
-    let mut b_authentihash = false;
-    let mut b_detectiteasy = false;
-    let mut b_last_submission_date = false;
-    let mut b_sigma_analysis_results = false;
-    let mut b_meaningful_name = false;
-    let mut b_crowdsourced_ids_stats = false;
-    let mut b_sandbox_verdicts = false;
-    let mut b_sha256 = false;
-    let mut b_type_extension = false;
-    let mut b_tags = false;
-    let mut b_crowdsourced_ids_results = false;
-    let mut b_last_analysis_date = false;
-    let mut b_unique_sources = false;
-    let mut b_first_submission_date = false;
-    let mut b_sha1 = false;
-    let mut b_ssdeep = false;
-    let mut b_md5 = false;
-    let mut b_pe_info = false;
-    let mut b_magic = false;
-    let mut b_last_analysis_stats = false;
-    let mut b_last_analysis_results = false;
-    let mut b_reputation = false;
-
-    let mut labels = String::new();
-    labels.push_str("elf_info\ndot_net_assembly\ntype_description\ntlsh\nvhash\ntrid\ncrowdsourced_yara_results\ncreation_date\nnames");
-    labels.push_str("\nlast_modification_date\ntype_tag\ntimes_submitted\ntotal_votes\nsize\npopular_threat_classification\nauthentihash\ndetectiteasy");
-    labels.push_str("\nlast_submission_date\nsigma_analysis_results\nmeaningful_name\ncrowdsourced_ids_stats\nsandbox_verdicts\nsha256\ntype_extension\ntags\ncrowdsourced_ids_results");
-    labels.push_str("\nlast_analysis_date\nunique_sources\nfirst_submission_date\nsha1\nssdeep\nmd5\npe_info\nmagic\nlast_analysis_stats\nlast_analysis_results\nreputation");
-
     let f_data = file_data.data?.attributes?;
     let b_data = behaviour_data.data?;
-
+    let mut rows: Vec<Row> = Default::default();
 
     if let Some(_) = f_data.elf_info                         {
-      b_elf_info = true;
+      rows.push(Self::get_preset_row("ELF Info", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("ELF Info", false));
     }
 
     if let Some(_) = f_data.dot_net_assembly                 {
-      b_dot_net_assembly = true;
+      rows.push(Self::get_preset_row(".Net-Assembly", true));
+    }
+    else {
+      rows.push(Self::get_preset_row(".Net-Assembly", false));
     }
 
     if let Some(_) = f_data.type_description                 {
-      b_type_description = true;
+      rows.push(Self::get_preset_row("Type Description", true))
+    }
+    else {
+      rows.push(Self::get_preset_row("Type Description", false))
     }
 
     if let Some(_) = f_data.tlsh                             {
-      b_tlsh = true;
+      rows.push(Self::get_preset_row("Tlsh", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Tlsh", false));
     }
 
     if let Some(_) = f_data.vhash                            {
-      b_vhash = true;
+      rows.push(Self::get_preset_row("Vhash", true))
+    }
+    else {
+      rows.push(Self::get_preset_row("Vhash", false))
     }
 
     if let Some(_) = f_data.trid                             {
-      b_trid = true;
+      rows.push(Self::get_preset_row("Trid", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Trid", false));
     }
 
     if let Some(_) = f_data.crowdsourced_yara_results        {
-      b_crowdsourced_yara_results = true;
+      rows.push(Self::get_preset_row("Crowdsourced Yara Results", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Crowdsourced Yara Results", false));
     }
 
     if let Some(_) = f_data.creation_date                    {
-      b_creation_date = true;
+      rows.push(Self::get_preset_row("Creation Date", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Creation Date", false));
     }
 
     if let Some(_) = f_data.names                            {
-      b_names = true;
+      rows.push(Self::get_preset_row("Names", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Names", false));
     }
 
     if let Some(_) = f_data.last_modification_date           {
-      b_last_modification_date = true;
+      rows.push(Self::get_preset_row("Last Modification Date", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Last Modification Date", false));
     }
 
     if let Some(_) = f_data.type_tag                         {
-      b_type_tag = true;
+      rows.push(Self::get_preset_row("Type Tag", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Type Tag", false));
     }
 
     if let Some(_) = f_data.times_submitted                  {
-      b_times_submitted = true;
+      rows.push(Self::get_preset_row("Times Submitted", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Times Submitted", false));
     }
 
     if let Some(_) = f_data.total_votes                      {
-      b_total_votes = true;
+      rows.push(Self::get_preset_row("Total Votes", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Total Votes", false));
     }
 
     if let Some(_) = f_data.size                             {
-      b_size = true;
+      rows.push(Self::get_preset_row("Size", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Size", false));
     }
 
     if let Some(_) = f_data.popular_threat_classification    {
-      b_popular_threat_classification = true;
+      rows.push(Self::get_preset_row("Popular Threat Classification", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Popular Threat Classification", false));
     }
 
     if let Some(_) = f_data.authentihash                     {
-      b_authentihash = true;
+      rows.push(Self::get_preset_row("Authentihash", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Authentihash", false));
     }
 
     if let Some(_) = f_data.detectiteasy                     {
-      b_detectiteasy = true;
+      rows.push(Self::get_preset_row("Detect It Easy", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Detect It Easy", false));
     }
 
     if let Some(_) = f_data.last_submission_date             {
-      b_last_submission_date = true;
+      rows.push(Self::get_preset_row("Last Submission Date", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Last Submission Date", false));
     }
 
     if let Some(_) = f_data.sigma_analysis_results           {
-      b_sigma_analysis_results = true;
+      rows.push(Self::get_preset_row("Sigma Analysis Results", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Sigma Analysis Results", false));
     }
 
     if let Some(_) = f_data.meaningful_name                  {
-      b_meaningful_name = true;
+      rows.push(Self::get_preset_row("Meaningful Name", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Meaningful Name", false));
     }
 
     if let Some(_) = f_data.crowdsourced_ids_stats           {
-      b_crowdsourced_ids_stats = true;
+      rows.push(Self::get_preset_row("Crowdsourced Ids Stats", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Crowdsourced Ids Stats", false));
     }
 
     if let Some(_) = f_data.sandbox_verdicts                 {
-      b_sandbox_verdicts = true;
+      rows.push(Self::get_preset_row("Sandbox Verdicts", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Sandbox Verdicts", false));
     }
 
     if let Some(_) = f_data.sha256                           {
-      b_sha256 = true;
+      rows.push(Self::get_preset_row("SHA256", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("SHA256", false));
     }
 
     if let Some(_) = f_data.type_extension                   {
-      b_type_extension = true;
+      rows.push(Self::get_preset_row("Type Extension", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Type Extension", false));
     }
 
     if let Some(_) = f_data.tags                             {
-      b_tags = true;
+      rows.push(Self::get_preset_row("Tags", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Tags", false));
     }
 
     if let Some(_) = f_data.crowdsourced_ids_results         {
-      b_crowdsourced_ids_results = true;
+      rows.push(Self::get_preset_row("Crowdsourced Ids Results", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Crowdsourced Ids Results", false));
     }
 
     if let Some(_) = f_data.last_analysis_date               {
-      b_last_analysis_date = true;
+      rows.push(Self::get_preset_row("Last Analysis Date", true));
+    }
+    else {
+      rows.push(Self::get_preset_row("Last Analysis Date", false));
     }
 
     if let Some(_) = f_data.unique_sources                   {
-      b_unique_sources = true;
+      rows.push(Self::get_preset_row("Unique Sources", true));
+    }
+
+    else {
+      rows.push(Self::get_preset_row("Unique Sources", false));
     }
 
     if let Some(_) = f_data.first_submission_date            {
-      b_first_submission_date = true;
+      rows.push(Self::get_preset_row("First Submission Date", true));
+    }
+
+    else {
+      rows.push(Self::get_preset_row("First Submission Date", false));
     }
 
     if let Some(_) = f_data.sha1                             {
-      b_sha1 = true;
+      rows.push(Self::get_preset_row("SHA1", true));
+    }
+
+    else {
+      rows.push(Self::get_preset_row("SHA1", false));
     }
 
     if let Some(_) = f_data.ssdeep                           {
-      b_ssdeep = true;
+      rows.push(Self::get_preset_row("SSdeep", true));
+    }
+
+    else {
+      rows.push(Self::get_preset_row("SSdeep", false));
     }
 
     if let Some(_) = f_data.md5                              {
-      b_md5 = true;
+      rows.push(Self::get_preset_row("MD5", true));
+    }
+
+    else {
+      rows.push(Self::get_preset_row("MD5", false));
     }
 
     if let Some(_) = f_data.pe_info                          {
-      b_pe_info = true;
+      rows.push(Self::get_preset_row("PE Info", true));
+    }
+
+    else {
+      rows.push(Self::get_preset_row("PE Info", false));
     }
 
     if let Some(_) = f_data.magic                            {
-      b_magic = true;
+      rows.push(Self::get_preset_row("Magic", true));
+    }
+
+    else {
+      rows.push(Self::get_preset_row("Magic", false));
     }
 
     if let Some(_) = f_data.last_analysis_stats              {
-      b_last_analysis_stats = true;
+      rows.push(Self::get_preset_row("Last Analysis Stats", true));
+    }
+
+    else {
+      rows.push(Self::get_preset_row("Last Analysis Stats", false));
     }
 
     if let Some(_) = f_data.last_analysis_results            {
-      b_last_analysis_results = true;
+      rows.push(Self::get_preset_row("Last Analysis Results", true));
+    }
+
+    else {
+      rows.push(Self::get_preset_row("Last Analysis Results", false));
     }
 
     if let Some(_) = f_data.reputation                       {
-      b_reputation = true;
+      rows.push(Self::get_preset_row("Reputation", true));
     }
 
-    Some(table)
+    else {
+      rows.push(Self::get_preset_row("Reputation", false));
+    }
+
+    let mut _meta: usize = 0;
+    let mut _analysis_date: usize = 0;
+    let mut _behash: usize = 0;
+    let mut _calls_highlighted: usize = 0;
+    let mut _command_execution: usize = 0;
+    let mut _files_opened: usize = 0;
+    let mut _files_written: usize = 0;
+    let mut _files_deleted: usize = 0;
+    let mut _files_attribute_changed: usize = 0;
+    let mut _has_html_report: usize = 0;
+    let mut _has_evtx: usize = 0;
+    let mut _has_pcap: usize = 0;
+    let mut _has_memdump: usize = 0;
+    let mut _hosts_file: usize = 0;
+    let mut _ids_alerts: usize = 0;
+    let mut _processes_terminated: usize = 0;
+    let mut _processes_killed: usize = 0;
+    let mut _processes_injected: usize = 0;
+    let mut _services_opened: usize = 0;
+    let mut _services_created: usize = 0;
+    let mut _services_started: usize = 0;
+    let mut _services_stopped: usize = 0;
+    let mut _services_deleted: usize = 0;
+    let mut _services_bound: usize = 0;
+    let mut _windows_searched: usize = 0;
+    let mut _windows_hidden: usize = 0;
+    let mut _mutexes_opened: usize = 0;
+    let mut _mutexes_created: usize = 0;
+    let mut _signals_observed: usize = 0;
+    let mut _invokes: usize = 0;
+    let mut _crypto_algorithims_observed: usize = 0;
+    let mut _crypto: usize = 0;
+    let mut _crypto_plain_text: usize = 0;
+    let mut _text_decoded: usize = 0;
+    let mut _text_highlighted: usize = 0;
+    let mut _verdict_confidence: usize = 0;
+    let mut _ja3_digest: usize = 0;
+    let mut _tls: usize = 0;
+    let mut _sni: usize = 0;
+    let mut _subject: usize = 0;
+    let mut _thumbprint: usize = 0;
+    let mut _version: usize = 0;
+    let mut _modules_loaded: usize = 0;
+    let mut _registry_opened: usize = 0;
+    let mut _registry_set: usize = 0;
+    let mut _registry_deleted: usize = 0;
+    let mut _mitre_attack_techniques: usize = 0;
+    let mut _ip_traffic: usize = 0;
+    let mut _http_conversations: usize = 0;
+
+    for i in b_data {
+      let att = i.attributes?;
+
+      
+    }
+
+    table.add_rows(rows);
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
+
 
   #[allow(dead_code)]
   pub fn get_sigma_rules(output_data: FileJsonOutput) -> Option<Table> {
@@ -243,7 +418,7 @@ impl VirusTotal {
   /**Function displayed detailed information about each resource in the file.
    * Params:
    *  output_data: FileJsonOutput {The parsed json response}
-   * Returns nothing.
+   * Returns Option<CombinedTable>
    */
   pub fn get_resource_details(output_data: FileJsonOutput) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
@@ -259,12 +434,12 @@ impl VirusTotal {
 
     // Set the table header.
     table.set_header(vec![
-      Cell::from("lang").fg(Color::Yellow),
-      Cell::from("entropy").fg(Color::Yellow),
-      Cell::from("chi2").fg(Color::Yellow),
-      Cell::from("filetype").fg(Color::Yellow),
-      Cell::from("sha256").fg(Color::Yellow),
-      Cell::from("type").fg(Color::Yellow),
+      Cell::from("Lang").fg(Color::Yellow),
+      Cell::from("Entropy").fg(Color::Yellow),
+      Cell::from("Chi2").fg(Color::Yellow),
+      Cell::from("Filetype").fg(Color::Yellow),
+      Cell::from("SHA256").fg(Color::Yellow),
+      Cell::from("Type").fg(Color::Yellow),
     ]);
 
     // Prepare each column.
@@ -484,17 +659,15 @@ impl VirusTotal {
 
   /**Function queries virus total for general info about the sample.
    * Params:
-   *  hash_id:  &str {The hash of the sample}
-   *  apikey:   &str {The virus total api key}
-   *  cpu:      bool {Tells us whether the cpu is 64 or 32}
-   * Returns nothing
+   *  output_data: FileJsonOutput {The parsed json response}
+   * Returns Option<CombinedTable>
    */
   pub fn get_general_info(output_data: FileJsonOutput) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
     title.add_row(Row::from(vec![
-      Cell::from("General Information")
+      Cell::from("[General Information]")
       .set_alignment(comfy_table::CellAlignment::Center)
       .fg(Color::Yellow)
     ]));
@@ -690,7 +863,6 @@ impl VirusTotal {
     ];
 
     table.add_rows(rows);
-
     title.set_content_arrangement(comfy_table::ContentArrangement::DynamicFullWidth);
     table.set_content_arrangement(comfy_table::ContentArrangement::DynamicFullWidth);
 
@@ -702,15 +874,24 @@ impl VirusTotal {
   /**Function displays all the compiler products for a said binary by parse the response from the virus total api.
    * Params:
    *  output_data: FileJsonOutput {The json repsonse from virus total api}
-   * Returns Option<Table>
+   * Returns Option<CombinedTable>
    */
-  pub fn get_compiler_products(output_data: FileJsonOutput) -> Option<Table> {
+  pub fn get_compiler_products(output_data: FileJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("[Compiler Products]")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+    
     let mut table = Table::new();
 
     table.set_header(vec![
-      Cell::from("id").fg(Color::Yellow),
-      Cell::from("version").fg(Color::Yellow),
-      Cell::from("count").fg(Color::Yellow),
+      Cell::from("ID").fg(Color::Yellow),
+      Cell::from("Version").fg(Color::Yellow),
+      Cell::from("Count").fg(Color::Yellow),
     ]);
 
     let mut ids = String::new();
@@ -730,7 +911,7 @@ impl VirusTotal {
           "[---]" =>      { ids.push_str("None\n"); }
           "version:" =>   { versions.push_str(format!("{}\n", split[idx+1]).as_str()); }
           "count:" =>     { counts.push_str(format!("{}\n", split[idx+1]).as_str()); }
-          _ => {}
+          _ => {  }
         }
       }
     }
@@ -744,47 +925,70 @@ impl VirusTotal {
       Cell::from(versions).fg(Color::Red),
       Cell::from(counts).fg(Color::Red),
     ]);
+
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
     
-    Some(table)
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
 
   /**Function displays all files names from the virus total api response in regards to a file hash.
    * Params:
    *  output_data: FileJsonOutput {The virus total api response}
-   * Returns Option<Table>
+   * Returns Option<CombinedTable>
    */
-  pub fn get_file_names(output_data: FileJsonOutput) -> Option<Table> {
+  pub fn get_file_names(output_data: FileJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+    
     let mut table = Table::new();
 
     table.set_header(vec![
       Cell::from("Name").fg(Color::Yellow),
     ]);
 
-    let mut row = String::from("");
+    let mut rows: Vec<Row> = Default::default();
     let data = output_data.data?.attributes?.names?;
     
     for i in data {
-      row.push_str(format!("{}\n", i).as_str());
+      rows.push(Row::from(vec![
+        Cell::from(i).fg(Color::Green)
+      ]));
     }
 
-    row.pop();
+    table.add_rows(rows);
 
-    table.add_row(vec![
-      Cell::from(row).fg(Color::Red),
-    ]);
-
-    Some(table)
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
 
   /**Function displays all tags from the virus total api response in regards to a file hash.
    * Params:
    *  output_data: FileJsonOutput {The virus total api response}
-   * Returns Option<Table>
+   * Returns Option<CombinedTable>
    */
-  pub fn get_tags(output_data: FileJsonOutput) -> Option<Table> {
+  pub fn get_tags(output_data: FileJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("[Tags]")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+    
     let mut table = Table::new();
     table.set_header(vec![
-      Cell::from("Tags").fg(Color::Yellow),
+      Cell::from("Tag Names").fg(Color::Yellow),
     ]);
 
     let data = output_data.data?.attributes?.tags?;
@@ -799,92 +1003,111 @@ impl VirusTotal {
       Cell::from(tags).fg(Color::Red),
     ]);
 
-    Some(table)
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
 
   /**Function displays all resource types from the virus total api response in regards to a file hash.
    * Params:
    *  output_data: FileJsonOutput {The virus total api response}
-   * Returns Option<Table>
+   * Returns Option<CombinedTable>
    */
   pub fn get_resource_by_type(output_data: FileJsonOutput) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
     title.add_row(Row::from(vec![
-      Cell::from("Resource by type")
+      Cell::from("[Resource by type]")
       .set_alignment(comfy_table::CellAlignment::Center)
       .fg(Color::Yellow)
     ]));
     
     let mut table = Table::new();
     table.set_header(vec![
-      Cell::from("Resource_Type").fg(Color::Yellow),
-      Cell::from("count").fg(Color::Yellow),
+      Cell::from("Resource Type").fg(Color::Yellow),
+      Cell::from("Count").fg(Color::Yellow),
     ]);
 
-    let mut resource = String::new();
-    let mut count = String::new();
+    // let mut resource = String::new();
+    // let mut count = String::new();
+    let mut rows: Vec<Row> = Default::default();
     let data = output_data.data?.attributes?.pe_info?.resource_types?;
 
     if let Some(icon) = data.rt_icon {
-      resource.push_str("RT_ICON\n");
-      count.push_str(format!("{icon}\n").as_str());
+      rows.push(Row::from(vec![
+        Cell::from("RT_ICON").fg(Color::Green),
+        Cell::from(format!("{icon}")).fg(Color::DarkYellow),
+      ]));
     }
 
     if let Some(dialog) = data.rt_dialog {
-      resource.push_str("RT_DIALOG\n");
-      count.push_str(format!("{dialog}\n").as_str());
+      rows.push(Row::from(vec![
+        Cell::from("RT_DIALOG").fg(Color::Green),
+        Cell::from(format!("{dialog}")).fg(Color::DarkYellow),
+      ]));
     };
 
     if let Some(cursor) = data.rt_cursor {
-      resource.push_str("RT_CURSOR\n");
-      count.push_str(format!("{cursor}\n").as_str());
+      rows.push(Row::from(vec![
+        Cell::from("RT_CURSOR").fg(Color::Green),
+        Cell::from(format!("{cursor}")).fg(Color::DarkYellow),
+      ]));
     }
 
     if let Some(acc) = data.rt_accelerator {
-      resource.push_str("RT_ACCELERATOR\n");
-      count.push_str(format!("{acc}\n").as_str());
+      rows.push(Row::from(vec![
+        Cell::from("RT_ACCELERATOR").fg(Color::Green),
+        Cell::from(format!("{acc}")).fg(Color::DarkYellow),
+      ]));
     }
 
     if let Some(bit) = data.rt_bitmap {
-      resource.push_str("RT_BITMAP\n");
-      count.push_str(format!("{bit}\n").as_str());
+      rows.push(Row::from(vec![
+        Cell::from("RT_BITMAP").fg(Color::Green),
+        Cell::from(format!("{bit}")).fg(Color::DarkYellow),
+      ]));
     }
 
     if let Some(mani) = data.rt_manifest {
-      resource.push_str("RT_MANIFEST\n");
-      count.push_str(format!("{mani}\n").as_str());
+      rows.push(Row::from(vec![
+        Cell::from("RT_MANIFEST").fg(Color::Green),
+        Cell::from(format!("{mani}")).fg(Color::DarkYellow),
+      ]));
     }
 
     if let Some(g_icon) = data.rt_group_icon {
-      resource.push_str("RT_GROUP_ICON\n");
-      count.push_str(format!("{g_icon}\n").as_str());
+      rows.push(Row::from(vec![
+        Cell::from("RT_GROUP_ICON").fg(Color::Green),
+        Cell::from(format!("{g_icon}")).fg(Color::DarkYellow),
+      ]));
     }
 
     if let Some(g_cursor) = data.rt_group_cursor {
-      resource.push_str("RT_GROUP_CURSOR\n");
-      count.push_str(format!("{g_cursor}\n").as_str());
+      rows.push(Row::from(vec![
+        Cell::from("RT_GROUP_CURSOR").fg(Color::Green),
+        Cell::from(format!("{g_cursor}")).fg(Color::DarkYellow),
+      ]));
     }
 
     if let Some(_str) = data.rt_string {
-      resource.push_str("RT_STRING\n");
-      count.push_str(format!("{_str}\n").as_str());
+      rows.push(Row::from(vec![
+        Cell::from("RT_STRING").fg(Color::Green),
+        Cell::from(format!("{_str}")).fg(Color::DarkYellow),
+      ]));
     }
 
     if let Some(ver) = data.rt_version {
-      resource.push_str("RT_VERSION\n");
-      count.push_str(format!("{ver}\n").as_str());
+      rows.push(Row::from(vec![
+        Cell::from("RT_VERSION").fg(Color::Green),
+        Cell::from(format!("{ver}")).fg(Color::DarkYellow),
+      ]));
     }
-    
-    resource.pop();
-    count.pop();
 
-    table.add_row(vec![
-      Cell::from(resource).fg(Color::Red),
-      Cell::from(count).fg(Color::Red),
-    ]);
-
+    table.add_rows(rows);
     title.set_content_arrangement(comfy_table::ContentArrangement::DynamicFullWidth);
     table.set_content_arrangement(comfy_table::ContentArrangement::DynamicFullWidth);
 
@@ -896,9 +1119,18 @@ impl VirusTotal {
   /**Function displays ip traffic from the virus total api response in regards to a file hash.
    * Params:
    *  output_data: BehaviorJsonOutput {The virus total api file behavior response}
-   * Returns Option<Table>
+   * Returns Option<CombinedTable>
    */
-  pub fn get_ip_traffic(output_data: BehaviorJsonOutput) -> Option<Table> {
+  pub fn get_ip_traffic(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("[IP Traffic]")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+    
     let mut table = Table::new();
     table.set_header(vec![
       Cell::from("IP").fg(Color::Yellow),
@@ -906,11 +1138,9 @@ impl VirusTotal {
       Cell::from("Protocol").fg(Color::Yellow),
     ]);
 
-    let mut ip = String::new();
-    let mut port = String::new();
-    let mut proto = String::new();
-
+    let mut rows: Vec<Row> = Default::default();
     let data = output_data.data?;
+    
     for i in data {
       let mut traffic: Vec<IpTraffic> = Default::default();
       if let Some(t) = i.attributes?.ip_traffic {
@@ -918,43 +1148,48 @@ impl VirusTotal {
       }
 
       for idx in traffic {
+        let mut cells: Vec<Cell> = Default::default();
+
         if let Some(ipp) = idx.destination_ip {
-          ip.push_str(format!("{ipp}\n").as_str());
+          cells.push(Cell::from(ipp).fg(Color::DarkCyan));
         }
 
         if let Some(p) = idx.destination_port {
-          port.push_str(format!("{}\n", p).as_str());
+          cells.push(Cell::from(format!("{p}")).fg(Color::DarkYellow));
         }
 
         if let Some(pro) = idx.transport_layer_protocol {
-          proto.push_str(format!("{}\n", pro).as_str());
+          cells.push(Cell::from(pro).fg(Color::Red));
         }
+
+        rows.push(Row::from(cells.clone()));
       }
     }
 
-    if ip.len() < 1 && port.len() < 1 && proto.len() < 1 {
-      return None;
-    }
+    table.add_rows(rows);
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
 
-    ip.pop();
-    port.pop();
-    proto.pop();
-
-    table.add_row(vec![
-      Cell::from(ip).fg(Color::Red),
-      Cell::from(port).fg(Color::Red),
-      Cell::from(proto).fg(Color::Red),
-    ]);
-
-    Some(table)
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
 
   /**Function displays http coversations from the virus total api response in regards to a file hash.
    * Params:
    *  output_data: BehaviorJsonOutput {The virus total api file behavior response}
-   * Returns Option<Table>
+   * Returns Option<CombinedTable>
    */
-  pub fn get_http_conv(output_data: BehaviorJsonOutput) -> Option<Table> {
+  pub fn get_http_conv(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("[HTTP Requests]")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+    
     let mut table = Table::new();
     table.set_header(vec![
       Cell::from("Method").fg(Color::Yellow),
@@ -962,11 +1197,9 @@ impl VirusTotal {
       Cell::from("Status_code").fg(Color::Yellow),
     ]);
 
-    let mut method = String::new();
-    let mut urls = String::new();
-    let mut status = String::new();
-
+    let mut rows: Vec<Row> = Default::default();
     let data = output_data.data?;
+    
     for i in data {
       
       let mut conv: Vec<HttpConversations> = Default::default();
@@ -975,41 +1208,37 @@ impl VirusTotal {
       }
 
       for idx in conv {
+        let mut cells: Vec<Cell> = Default::default();
+        
         if let Some(m) = idx.request_method {
-          method.push_str(format!("{m}\n").as_str());
+          cells.push(Cell::from(m).fg(Color::Green));
         }
 
         if let Some(u) = idx.url {
-          urls.push_str(format!("{u}\n").as_str());
+          cells.push(Cell::from(u).fg(Color::DarkCyan));
         }
 
         if let Some(s) = idx.response_status_code {
-          status.push_str(format!("{s}\n").as_str());
+          cells.push(Cell::from(s).fg(Color::DarkYellow));
         }
+
+        rows.push(Row::from(cells));
       }
     }
 
-    if method.len() < 1 && urls.len() < 1 && status.len() < 1 {
-      return None;
-    }
+    table.add_rows(rows);
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
 
-    method.pop();
-    urls.pop();
-    status.pop();
-
-    table.add_row(vec![
-      Cell::from(method).fg(Color::Red),
-      Cell::from(urls).fg(Color::Red),
-      Cell::from(status).fg(Color::Red),
-    ]);
-
-    Some(table)
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
 
   /**Function displays set registry keys from the virus total api response in regards to a file hash.
    * Params:
    *  output_data: FileJsonOutput {The virus total api response}
-   * Returns Option<Table>
+   * Returns Option<CombinedTable>
    */
   #[allow(dead_code)]
   pub fn get_registry_keys_set(_output_data: BehaviorJsonOutput) -> Option<Table> {
@@ -1022,7 +1251,7 @@ impl VirusTotal {
    * api response in regards to a file hash.
    * Params:
    *  output_data: BehaviorJsonOutput {The virus total api file behavior response}
-   * Returns Option<Table>
+   * Returns Option<CombinedTable>
    */
   pub fn get_mitre_attack_techniques(output_data: BehaviorJsonOutput) -> Option<Table> {
     let mut table = Table::new();
@@ -1074,12 +1303,21 @@ impl VirusTotal {
   /**Function displays function imports from the virus total api response in regards to a file hash.
    * Params:
    *  output_data: FileJsonOutput {The virus total api response}
-   * Returns Option<Table>
+   * Returns Option<CombinedTable>
    */
-  pub fn get_imports(output_data: FileJsonOutput) -> Option<Table> {
+  pub fn get_imports(output_data: FileJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("[Imported Functions]")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+    
     let mut table = Table::new();
     table.set_header(vec![
-      Cell::from("Name").fg(Color::Yellow),
+      Cell::from("Symbol Name").fg(Color::Yellow),
       Cell::from("Library").fg(Color::Yellow),
     ]);
 
@@ -1105,18 +1343,32 @@ impl VirusTotal {
       Cell::from(names).fg(Color::Red),
     ]);
 
-    Some(table)
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
 
   /**Function displays function imports from the virus total api response in regards to a file hash.
    * Params:
    *  output_data: FileJsonOutput {The virus total api response}
-   * Returns Option<Table>
+   * Returns Option<CombinedTable>
    */
-  pub fn get_exports(output_data: FileJsonOutput) -> Option<Table> {
+  pub fn get_exports(output_data: FileJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("[Exported Functions]")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+    
     let mut table = Table::new();
     table.set_header(vec![
-      Cell::from("").fg(Color::Yellow),
+      Cell::from("Symbol Name").fg(Color::Yellow),
     ]);
 
     let mut names = String::new();
@@ -1131,7 +1383,12 @@ impl VirusTotal {
       Cell::from(names).fg(Color::Red),
     ]);
 
-    Some(table)
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
   
   /**Function queries the virus total api and returns a string with the json response.

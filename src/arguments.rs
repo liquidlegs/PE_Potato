@@ -346,7 +346,10 @@ impl VtArgs {
     if self.mitre_techniques  == true       { beh_count += 1; }
     if self.ipt  == true                    { beh_count += 1; }
     if self.http == true                    { beh_count += 1; }
-    if self.structure_stats == true         { beh_count += 1; }
+    if self.structure_stats == true         {
+      att_count += 1;
+      beh_count += 1;
+    }
 
     if att_count > 0 {
       _type.attributes = true;
@@ -486,6 +489,7 @@ impl Arguments {
       let mut file_request = String::new();
       let mut behaviour_request = String::new();
       let mut file_att = FileJsonOutput::default();
+      let mut file_att_test = FileJsonOutput::default();
       let mut beh_att = BehaviorJsonOutput::default();
       let arg_types = av.check_arg_types()?;
       let _file_bytes = settings.file_bytes.clone();
@@ -493,6 +497,7 @@ impl Arguments {
       if arg_types.attributes == true {
         file_request.push_str(VirusTotal::query_file_attributes(&settings.file_hash, &settings.vt_api_key).as_str());
         file_att = VirusTotal::parse_response(file_request.clone());
+        file_att_test = VirusTotal::parse_response(file_request.clone());
       }
 
       if arg_types.behaviour == true {
@@ -542,43 +547,43 @@ impl Arguments {
 
       if av.names == true {
         if let Some(n) = VirusTotal::get_file_names(file_att.clone()) {
-          println!("{n}");
+          println!("{}\n{}", n.title, n.contents);
         }
       }
 
       if av.compiler_products == true {
         if let Some(c) = VirusTotal::get_compiler_products(file_att.clone()) {
-          println!("{c}");
+          println!("{}\n{}", c.title, c.contents);
         }
       }
 
       if av.imports  == true {
         if let Some(i) = VirusTotal::get_imports(file_att.clone()) {
-          println!("{i}");
+          println!("{}\n{}", i.title, i.contents);
         }
       }
 
       if av.exports == true {
         if let Some(ex) = VirusTotal::get_exports(file_att.clone()) {
-          println!("{ex}");
+          println!("{}\n{}", ex.title, ex.contents);
         }
       } 
 
       if av.tags == true {
-        if let Some(tags) = VirusTotal::get_tags(file_att.clone()) {
-          println!("{tags}");
+        if let Some(t) = VirusTotal::get_tags(file_att.clone()) {
+          println!("{}\n{}", t.title, t.contents);
         }
       }
 
       if av.ipt == true {
         if let Some(ip) = VirusTotal::get_ip_traffic(beh_att.clone()) {
-          println!("{ip}");
+          println!("{}\n{}", ip.title, ip.contents);
         }
       }
 
       if av.http == true {
-        if let Some(http) = VirusTotal::get_http_conv(beh_att.clone()) {
-          println!("{http}");
+        if let Some(h) = VirusTotal::get_http_conv(beh_att.clone()) {
+          println!("{}\n{}", h.title, h.contents);
         }
       }
 
@@ -593,7 +598,9 @@ impl Arguments {
       }
 
       if av.structure_stats == true {
-
+        if let Some(s) = VirusTotal::get_structure_stats(file_att_test.clone(), beh_att.clone()) {
+          println!("{}\n{}", s.title, s.contents);
+        }
       }
     }
 
