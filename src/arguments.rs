@@ -131,12 +131,16 @@ pub struct MbArgs {
   /// Download malware sample. [TODO]
   pub download: Option<String>,
 
-  #[clap(short, long, default_value_if("tag", Some("false"), Some("true")), min_values(0))]
-  /// Query malware sample by tag. [TODO]
-  pub tag: bool,
+  #[clap(short = 't', long)]
+  /// Query malware sample by tag. [tag:n_results] - Eg: rootkit:15
+  pub query_tag: Option<String>,
+
+  #[clap(short = 's', long)]
+  /// Query malware sample by signature. [signature:results] - Eg: AgentTesla:100
+  pub query_signature: Option<String>,
   
   #[clap(long)]
-  /// Query malware sample by file type [filetype:results] - Eg: docx:30 
+  /// Query malware sample by file type [filetype:n_results] - Eg: docx:30 
   pub query_filetype: Option<String>,
   
   #[clap(short, long, default_value_if("yara", Some("false"), Some("true")), min_values(0))]
@@ -157,9 +161,12 @@ impl MbArgs {
   pub fn check_valid_flags(&self) -> usize {
     let mut count: usize = 0;
     
-    if self.tag == true                 { count += 1; }
     if self.yara == true                { count += 1; }
     if self.debug == true               { count += 1; }
+
+    if let Some(_) = self.query_tag.clone() {
+      count += 1;
+    }
     
     if let Some(_) = self.query_filetype.clone() {
       count += 1;
@@ -646,15 +653,28 @@ impl Arguments {
       }
     }
 
+    if let Some(q) = mb_args.query_tag {
+      if let Some(t) = mb.get_query_items(q, SearchType::Tag) {
+        println!("{}\n{}", t.title, t.contents);
+      }
+    }
+
+    if let Some(q) = mb_args.query_signature {
+      if let Some(t) = mb.get_query_items(q, SearchType::Signature) {
+        println!("{}\n{}", t.title, t.contents);
+      }
+    }
+
     // shows more detailed information about a single sample.
     // would like to also show yara rules and vendor intel with this same command.
     if let Some(q) = mb_args.query_hash {
-      if let Some(t) = mb.get_query_hash(q) {
-        println!("{}\n{}", t.title, t.contents);
+      if let Some(s_table) = mb.get_query_hash(q) {
+        let f = s_table.0;    // File Information
+        let y = s_table.1;    // Yara Rules
+        let i = s_table.2;    // Sandbox Intel
+        
+        println!("{}\n{}\n{}\n{}\n{}\n{}", f.title, f.contents, y.title, y.contents, i.title, i.contents);
       }
-
-      // call mb.get_query_yararules
-      // call mb.get_vendor_intel
     }
 
     Ok(())

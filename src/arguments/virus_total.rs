@@ -381,8 +381,6 @@ impl VirusTotal {
 
     for i in b_data {
       let att = i.attributes?;
-
-      
     }
 
     table.add_rows(rows);

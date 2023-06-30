@@ -30,15 +30,42 @@ pub struct MbData {
   pub dhash_icon:         Option<String>,
   pub comment:            Option<String>,
   pub tags:               Option<Vec<String>>,
-  pub code_sign:          Option<Vec<String>>,
+  pub code_sign:          Option<Vec<CodeSign>>,
   pub intelligence:       Option<MbIntelligence>,
   pub delivery_method:    Option<String>,
 
   pub file_information:   Option<Vec<FileInfo>>,
-  pub ole_information:    Option<Vec<String>>,
+  pub ole_information:    Option<Ole>,
   pub yara_rules:         Option<Vec<MbYaraRule>>,
   pub vendor_intel:       Option<Vendor>,
   pub comments:           Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct CodeSign {
+  pub subject_cn:             Option<String>,
+  pub issuer_cn:              Option<String>,
+  pub algorithm:              Option<String>,
+  pub valid_from:             Option<String>,
+  pub valid_to:               Option<String>,
+  pub serial_number:          Option<String>,
+  pub thumbprint_algorithm:   Option<String>,
+  pub thumbprint:             Option<String>,
+  pub cscb_listed:            Option<bool>,
+  pub cscb_reason:            Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct Ole {
+  pub oleva: Option<Vec<MbOlevba>>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct MbOlevba {
+  #[serde(rename = "type")]
+  pub _type:          Option<String>,
+  pub keyword:        Option<String>,
+  pub description:    Option<String>, 
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
