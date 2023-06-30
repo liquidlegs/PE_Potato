@@ -35,6 +35,13 @@ However, this will change over time.
 - Query Virus Total via:
   - Generated Hash
   - Manually Entered Hash
+- Query Malware Bazaar via:
+  - Hash (MD5, SHA1, SHA256)
+  - File type
+  - Tag
+  - Signature
+  - Recent malware samples (100 most recent samples or samples added in the last hour)
+- Malware Bazaar raw json responses
 
 ## Planned features
 - A modern GUI
@@ -56,3 +63,9 @@ However, this will change over time.
   - Process Tree
   - Other malicious payload information
 - Upload samples to Virus Total
+- Malware Bazaar:
+  - Download individual samples
+  - Download samples in bulk
+  - Generate file hashes from disk
+  - Query yara rules
+  - Query sanbox intel
