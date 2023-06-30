@@ -395,7 +395,7 @@ pub struct TotalVotes {
   pub malicious:  Option<usize>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct CrowdSrcYara {
   pub description:          Option<String>,
   pub source:               Option<String>,

@@ -669,11 +669,25 @@ impl Arguments {
     // would like to also show yara rules and vendor intel with this same command.
     if let Some(q) = mb_args.query_hash {
       if let Some(s_table) = mb.get_query_hash(q) {
-        let f = s_table.0;    // File Information
-        let y = s_table.1;    // Yara Rules
-        let i = s_table.2;    // Sandbox Intel
-        
-        println!("{}\n{}\n{}\n{}\n{}\n{}", f.title, f.contents, y.title, y.contents, i.title, i.contents);
+        let f_info = s_table.0;    // File Information
+        let y_rules = s_table.1;    // Yara Rules
+        let intel = s_table.2;    // Sandbox Intel
+
+        let fi_lines = f_info.contents.lines().count();
+        let y_lines = y_rules.contents.lines().count();
+        let it_lines = intel.contents.lines().count();
+
+        if fi_lines > 2 {
+          println!("{}\n{}", f_info.title, f_info.contents);
+        }
+
+        if y_lines > 2 {
+          println!("{}\n{}", y_rules.title, y_rules.contents);
+        }
+
+        if it_lines > 2 {
+          println!("{}\n{}", intel.title, intel.contents);
+        }
       }
     }
 

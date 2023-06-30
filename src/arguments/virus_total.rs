@@ -1547,15 +1547,10 @@ impl VirusTotal {
     ]));
     
     let mut table = Table::new();
-    // let labels = String::from(
-    //   "Description\nSource\nAuthor\nRuleset_ID\nRuleset_Name\nRule_Name"
-    // );
-
     let mut rows: Vec<Row> = Default::default();
     let rules = output_data.data?.attributes?.crowdsourced_yara_results?;
-    
+
     for i in rules {
-      // let mut input = String::new();
       let mut description = String::new();
       let mut source = String::new();
       let mut author = String::new();
@@ -1614,11 +1609,6 @@ impl VirusTotal {
       rows.push(Row::from(vec![
         Cell::from("").fg(Color::Yellow), Cell::from("").fg(Color::DarkCyan)
       ]));
-      
-      // rows.push(Row::from(vec![
-      //   Cell::from(labels.as_str()).fg(Color::Yellow),
-      //   Cell::from(input.as_str()).fg(Color::DarkCyan),
-      // ]));
     }
 
     rows.pop();

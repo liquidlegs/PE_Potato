@@ -35,6 +35,7 @@ pub struct MbData {
   pub delivery_method:    Option<String>,
 
   pub file_information:   Option<Vec<FileInfo>>,
+  #[serde(flatten)]
   pub ole_information:    Option<Ole>,
   pub yara_rules:         Option<Vec<MbYaraRule>>,
   pub vendor_intel:       Option<Vendor>,
@@ -84,10 +85,10 @@ pub struct MbYaraRule {
 
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct MbIntelligence {
-  pub clamav:           Option<Vec<String>>,
-  pub uploads:          Option<String>,
-  pub download:         Option<String>,
-  pub mail:             Option<String>,
+  pub clamav:             Option<Vec<String>>,
+  pub uploads:            Option<String>,
+  pub downloads:          Option<String>,
+  pub mail:               Option<String>,
 }
 
 // Structure is yet to be filled out.
