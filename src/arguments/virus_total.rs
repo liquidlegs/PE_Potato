@@ -5,7 +5,7 @@ use super::{
   vt_file_json::*,
   ClientBuilder, Method, 
   GeneralError, vt_behaviour_json::{BehaviorJsonOutput, IpTraffic, HttpConversations, MitreAttackTechniques, BehaviourData},
-  CombinedTable,
+  CombinedTable, CTerm,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -432,12 +432,12 @@ impl VirusTotal {
 
     // Set the table header.
     table.set_header(vec![
-      Cell::from("Lang").fg(Color::Yellow),
-      Cell::from("Entropy").fg(Color::Yellow),
-      Cell::from("Chi2").fg(Color::Yellow),
-      Cell::from("Filetype").fg(Color::Yellow),
-      Cell::from("SHA256").fg(Color::Yellow),
-      Cell::from("Type").fg(Color::Yellow),
+      Cell::from("Lang").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Entropy").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Chi2").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Filetype").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("SHA256").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Type").bg(Color::DarkBlue).fg(Color::White),
     ]);
 
     // Prepare each column.
@@ -521,12 +521,12 @@ impl VirusTotal {
 
     // Sets the header for the table.
     section_table.set_header(vec![
-      Cell::from("Name").fg(Color::Yellow),
-      Cell::from("Virtual Address").fg(Color::Yellow),
-      Cell::from("Virtual Size").fg(Color::Yellow),
-      Cell::from("Raw Size").fg(Color::Yellow),
-      Cell::from("Entropy").fg(Color::Yellow),
-      Cell::from("MD5").fg(Color::Yellow),
+      Cell::from("Name").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Virtual Address").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Virtual Size").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Raw Size").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Entropy").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("MD5").bg(Color::DarkBlue).fg(Color::White),
     ]);
 
     let pe = output_data.data?.attributes?.pe_info?;
@@ -542,15 +542,15 @@ impl VirusTotal {
       }
 
       if let Some(virt_a) = i.virtual_address {
-        cells.push(Cell::from(format!("0x{:X}", virt_a)).fg(Color::DarkYellow));
+        cells.push(Cell::from(format!("0x{:X}", virt_a)).fg(Color::Yellow));
       }
 
       if let Some(vsize) = i.virtual_size {
-        cells.push(Cell::from(format!("0x{:X}", vsize)).fg(Color::DarkYellow));
+        cells.push(Cell::from(format!("0x{:X}", vsize)).fg(Color::Yellow));
       }
 
       if let Some(rs) = i.raw_size {
-        cells.push(Cell::from(rs).fg(Color::DarkYellow));
+        cells.push(Cell::from(rs).fg(Color::Yellow));
       }
 
       if let Some(e) = i.entropy {
@@ -563,12 +563,12 @@ impl VirusTotal {
           cells.push(Cell::from(format!("{e}")).fg(Color::Green));
         }
     
-        else if e > 4.5 && e < 7.5 {
-          cells.push(Cell::from(format!("{e}")).fg(Color::DarkYellow));
+        else if e > 4.5 && e < 7.0 {
+          cells.push(Cell::from(format!("{e}")).fg(Color::Yellow));
         }
     
-        else if e > 7.5 {
-          cells.push(Cell::from(format!("{e}")).fg(Color::Red));
+        else if e > 7.0 {
+          cells.push(Cell::from(format!("{e}")).bg(Color::DarkRed).fg(Color::White));
         }
       }
 
@@ -588,7 +588,12 @@ impl VirusTotal {
     Some(out)
   }
 
-  pub fn parse_response(response: String) -> FileJsonOutput {
+  pub fn parse_response(raw_json: bool, response: String) -> FileJsonOutput {
+    if raw_json == true {
+      println!("{response}");
+      std::process::exit(0);
+    }
+    
     // Deserialize the json object in another thread.
     let (tx, rx) = std::sync::mpsc::channel::<FileJsonOutput>();
     std::thread::spawn(Box::new(move || {
@@ -622,7 +627,12 @@ impl VirusTotal {
   }
 
   
-  pub fn parse_behavior_response(response: String) -> BehaviorJsonOutput {
+  pub fn parse_behavior_response(raw_json: bool, response: String) -> BehaviorJsonOutput {
+    if raw_json == true {
+      println!("{response}");
+      std::process::exit(0);
+    }
+    
     // Deserialize the json object in another thread.
     let (tx, rx) = std::sync::mpsc::channel::<BehaviorJsonOutput>();
     std::thread::spawn(Box::new(move || {
@@ -795,7 +805,7 @@ impl VirusTotal {
     }
 
     else if entropy > 4.5 && entropy < 7.5 {
-      entropy_c = Color::DarkYellow;
+      entropy_c = Color::Yellow;
     }
 
     else if entropy > 7.5 {
@@ -804,59 +814,59 @@ impl VirusTotal {
 
     let rows = vec![
       Row::from(vec![
-        Cell::from("FileName").fg(Color::Yellow), Cell::from(names).fg(Color::Green)
+        Cell::from("FileName").fg(Color::White), Cell::from(names).fg(Color::Green)
       ]),
 
       Row::from(vec![
-        Cell::from("FileSize").fg(Color::Yellow), Cell::from(format!("{bin_size} (Bytes)")).fg(Color::DarkYellow)
+        Cell::from("FileSize").bg(Color::DarkGrey).fg(Color::White), Cell::from(format!("{bin_size} (Bytes)")).fg(Color::Yellow)
       ]),
 
       Row::from(vec![
-        Cell::from("FileType").fg(Color::Yellow), Cell::from(filetype).fg(Color::Green)
+        Cell::from("FileType").fg(Color::White), Cell::from(filetype).fg(Color::Green)
       ]),
 
       Row::from(vec![
-        Cell::from("CPU").fg(Color::Yellow), Cell::from(arch).fg(Color::DarkCyan)
+        Cell::from("CPU").bg(Color::DarkGrey).fg(Color::White), Cell::from(arch).fg(Color::DarkCyan)
       ]),
 
       Row::from(vec![
-        Cell::from("SubSystem").fg(Color::Yellow), Cell::from(subsys).fg(Color::DarkCyan)
+        Cell::from("SubSystem").fg(Color::White), Cell::from(subsys).fg(Color::DarkCyan)
       ]),
 
       Row::from(vec![
-        Cell::from("Compiler").fg(Color::Yellow), Cell::from(comp).fg(Color::Blue)
+        Cell::from("Compiler").bg(Color::DarkGrey).fg(Color::White), Cell::from(comp).fg(Color::Blue)
       ]),
 
       Row::from(vec![
-        Cell::from("Packer").fg(Color::Yellow), Cell::from(pack).fg(Color::Green)
+        Cell::from("Packer").fg(Color::White), Cell::from(pack).fg(Color::Green)
       ]),
 
       Row::from(vec![
-        Cell::from("Sections").fg(Color::Yellow), Cell::from(number_of_sections).fg(Color::DarkYellow)
+        Cell::from("Sections").bg(Color::DarkGrey).fg(Color::White), Cell::from(number_of_sections).fg(Color::Yellow)
       ]),
 
       Row::from(vec![
-        Cell::from("Entropy").fg(Color::Yellow), Cell::from(entropy).fg(entropy_c)
+        Cell::from("Entropy").fg(Color::White), Cell::from(entropy).fg(entropy_c)
       ]),
 
       Row::from(vec![
-        Cell::from("Family").fg(Color::Yellow), Cell::from(family).fg(Color::Red)
+        Cell::from("Family").bg(Color::DarkGrey).fg(Color::White), Cell::from(family).fg(Color::Red)
       ]),
 
       Row::from(vec![
-        Cell::from("Detected").fg(Color::Yellow), Cell::from(detections).fg(Color::DarkYellow)
+        Cell::from("Detected").fg(Color::White), Cell::from(detections).fg(Color::Yellow)
       ]),
 
       Row::from(vec![
-        Cell::from("Undetected").fg(Color::Yellow), Cell::from(no_detections).fg(Color::DarkYellow)
+        Cell::from("Undetected").bg(Color::DarkGrey).fg(Color::White), Cell::from(no_detections).fg(Color::Yellow)
       ]),
 
       Row::from(vec![
-        Cell::from("MD5").fg(Color::Yellow), Cell::from(md5_hash).fg(Color::DarkCyan)
+        Cell::from("MD5").fg(Color::White), Cell::from(md5_hash).fg(Color::DarkCyan)
       ]),
 
       Row::from(vec![
-        Cell::from("SHA256").fg(Color::Yellow), Cell::from(sha256).fg(Color::DarkCyan)
+        Cell::from("SHA256").bg(Color::DarkGrey).fg(Color::White), Cell::from(sha256).fg(Color::DarkCyan)
       ]),
     ];
 
@@ -986,7 +996,7 @@ impl VirusTotal {
     
     let mut table = Table::new();
     table.set_header(vec![
-      Cell::from("Tag Names").fg(Color::Yellow),
+      Cell::from("Tag Names").bg(Color::DarkBlue).fg(Color::White),
     ]);
 
     let data = output_data.data?.attributes?.tags?;
@@ -1131,9 +1141,9 @@ impl VirusTotal {
     
     let mut table = Table::new();
     table.set_header(vec![
-      Cell::from("IP").fg(Color::Yellow),
-      Cell::from("Port").fg(Color::Yellow),
-      Cell::from("Protocol").fg(Color::Yellow),
+      Cell::from("IP").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Port").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Protocol").bg(Color::DarkBlue).fg(Color::White),
     ]);
 
     let mut rows: Vec<Row> = Default::default();
@@ -1149,11 +1159,11 @@ impl VirusTotal {
         let mut cells: Vec<Cell> = Default::default();
 
         if let Some(ipp) = idx.destination_ip {
-          cells.push(Cell::from(ipp).fg(Color::DarkCyan));
+          cells.push(Cell::from(ipp).fg(Color::Green));
         }
 
         if let Some(p) = idx.destination_port {
-          cells.push(Cell::from(format!("{p}")).fg(Color::DarkYellow));
+          cells.push(Cell::from(format!("{p}")).fg(Color::Yellow));
         }
 
         if let Some(pro) = idx.transport_layer_protocol {
@@ -1190,9 +1200,9 @@ impl VirusTotal {
     
     let mut table = Table::new();
     table.set_header(vec![
-      Cell::from("Method").fg(Color::Yellow),
-      Cell::from("Url").fg(Color::Yellow),
-      Cell::from("Status_code").fg(Color::Yellow),
+      Cell::from("Method").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Url").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Status_code").bg(Color::DarkBlue).fg(Color::White),
     ]);
 
     let mut rows: Vec<Row> = Default::default();
@@ -1217,7 +1227,7 @@ impl VirusTotal {
         }
 
         if let Some(s) = idx.response_status_code {
-          cells.push(Cell::from(s).fg(Color::DarkYellow));
+          cells.push(Cell::from(s).fg(Color::Yellow));
         }
 
         rows.push(Row::from(cells));
@@ -1245,24 +1255,84 @@ impl VirusTotal {
     Some(table)  
   }
 
+
+  pub fn generate_alert_colour(colour: CTerm, keyword: &str) -> Color {
+    match keyword.to_lowercase().as_str() {
+      
+      "info" =>     {
+        if colour == CTerm::Fg {
+          return Color::White
+        }
+        else {
+          return Color::Reset
+        }
+
+      }
+      
+      "low" => {
+        if colour == CTerm::Fg {
+          return Color::Blue
+        }
+        else {
+          Color::Reset
+        }
+      }
+      
+      "medium" =>   {
+        if colour == CTerm::Fg {
+          return Color::DarkYellow
+        }
+        else {
+          return Color::Reset;
+        }
+      }
+      
+      "high" =>     {
+        if colour == CTerm::Fg {
+          return Color::White
+        }
+        else {
+          return Color::DarkRed
+        }
+      }
+
+      _ => {
+        if colour == CTerm::Fg {
+          return Color::White;
+        }
+        else {
+          return Color::Reset;
+        }
+      }
+    }
+  }
+
   /**Function displays mitre attack techniques and sub techniques from the virus total 
    * api response in regards to a file hash.
    * Params:
    *  output_data: BehaviorJsonOutput {The virus total api file behavior response}
    * Returns Option<CombinedTable>
    */
-  pub fn get_mitre_attack_techniques(output_data: BehaviorJsonOutput) -> Option<Table> {
+  pub fn get_mitre_attack_techniques(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("Mitre Attack Techniques")
+      .set_alignment(comfy_table::CellAlignment::Center)
+      .fg(Color::Yellow)
+    ]));
+    
     let mut table = Table::new();
     table.set_header(vec![
-      Cell::from("id").fg(Color::Yellow),
-      Cell::from("description").fg(Color::Yellow),
-      Cell::from("severity").fg(Color::Yellow),
+      Cell::from("id").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("description").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("severity").bg(Color::DarkBlue).fg(Color::White),
     ]);
 
-    let mut ids = String::new();
-    let mut desc = String::new();
-    let mut severity = String::new();
     let data = output_data.data?;
+    let mut rows: Vec<Row> = vec![];
+    let mut counter: usize = 0;
 
     for i in data {
       let mut mitre: Vec<MitreAttackTechniques> = Default::default();
@@ -1271,31 +1341,42 @@ impl VirusTotal {
       }
 
       for idx in mitre {
+        let mut cells: Vec<Cell> = Default::default();
+
         if let Some(i) = idx.id {
-          ids.push_str(format!("{i}\n").as_str());
+          if counter % 2 == 0 {
+            cells.push(Cell::from(i).bg(Color::DarkGrey).fg(Color::White));
+            counter += 1;
+          }
+
+          else {
+            cells.push(Cell::from(i).fg(Color::White));
+            counter += 1;
+          }
         }
 
         if let Some(d) = idx.signature_description {
-          desc.push_str(format!("{d}\n").as_str());
+          cells.push(Cell::from(d).fg(Color::Green));
         }
 
         if let Some(s) = idx.severity {
-          severity.push_str(format!("{}\n", s.replace("IMPACT_SEVERITY_", "")).as_str());
+          let alert = s.replace("IMPACT_SEVERITY_", "");
+          cells.push(Cell::from(alert.clone())
+          .bg(Self::generate_alert_colour(CTerm::Bg, alert.as_str()))
+          .fg(Self::generate_alert_colour(CTerm::Fg, alert.as_str())));
         }
+
+        rows.push(Row::from(cells));
       }
     }
 
-    ids.pop();
-    desc.pop();
-    severity.pop();
+    table.add_rows(rows);
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
 
-    table.add_row(vec![
-      Cell::from(ids).fg(Color::Red),
-      Cell::from(desc).fg(Color::Red),
-      Cell::from(severity).fg(Color::Red),
-    ]);
-
-    Some(table)
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
 
   /**Function displays function imports from the virus total api response in regards to a file hash.
@@ -1541,7 +1622,7 @@ impl VirusTotal {
     let mut title = Table::new();
 
     title.add_row(Row::from(vec![
-      Cell::from("Yara Rules")
+      Cell::from("[Yara Rules]")
       .set_alignment(comfy_table::CellAlignment::Center)
       .fg(Color::Yellow)
     ]));
@@ -1583,7 +1664,7 @@ impl VirusTotal {
       }
 
       rows.push(Row::from(vec![
-        Cell::from("Description").fg(Color::Yellow), Cell::from(description).fg(Color::Green)
+        Cell::from("Description").bg(Color::DarkGrey).fg(Color::White), Cell::from(description).fg(Color::Green)
       ]));
 
       rows.push(Row::from(vec![
@@ -1591,7 +1672,7 @@ impl VirusTotal {
       ]));
 
       rows.push(Row::from(vec![
-        Cell::from("Author").fg(Color::Yellow), Cell::from(author).fg(Color::Green)
+        Cell::from("Author").bg(Color::DarkGrey).fg(Color::White), Cell::from(author).fg(Color::Green)
       ]));
 
       rows.push(Row::from(vec![
@@ -1599,7 +1680,7 @@ impl VirusTotal {
       ]));
 
       rows.push(Row::from(vec![
-        Cell::from("Ruleset_Name").fg(Color::Yellow), Cell::from(ruleset_name).fg(Color::DarkYellow)
+        Cell::from("Ruleset_Name").bg(Color::DarkGrey).fg(Color::White), Cell::from(ruleset_name).fg(Color::DarkYellow)
       ]));
 
       rows.push(Row::from(vec![
@@ -1641,12 +1722,12 @@ impl VirusTotal {
     // Setup a table.
     let mut table = Table::new();
     table.set_header(vec![
-      Cell::from("Av_Engine").fg(Color::Yellow),
-      Cell::from("Category").fg(Color::Yellow),
-      Cell::from("Result").fg(Color::Yellow),
-      Cell::from("Version").fg(Color::Yellow),
-      Cell::from("Method").fg(Color::Yellow),
-      Cell::from("Engine_Update").fg(Color::Yellow),
+      Cell::from("Av_Engine").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Category").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Result").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Version").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Method").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Engine_Update").bg(Color::DarkBlue).fg(Color::White),
     ]);
 
     // Unpack the AnalysisResult struct and construct the table.
@@ -1715,9 +1796,9 @@ impl VirusTotal {
       }
       
       match category.as_str() {
-        "type-unsupported" => { c_category = Cell::from(category).fg(Color::Blue); }
-        "undetected" =>       { c_category = Cell::from(category).fg(Color::Green); }
-        "malicious" =>        { c_category = Cell::from(category).fg(Color::Red); }
+        "type-unsupported" => { c_category = Cell::from(category).fg(Color::Blue);                     }
+        "undetected" =>       { c_category = Cell::from(category).fg(Color::Green);                    }
+        "malicious" =>        { c_category = Cell::from(category).bg(Color::DarkRed).fg(Color::White); }
         _ => {}
       }
 

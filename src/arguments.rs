@@ -126,6 +126,12 @@ pub enum ConfigPath {
   Unknown,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum CTerm {
+  Fg,
+  Bg,
+}
+
 #[derive(Args, Debug, Clone, Default)]
 pub struct MbArgs {
   #[clap(short, long)]
@@ -294,6 +300,10 @@ pub struct VtArgs {
   #[clap(short, long)]
   /// Send API requests to an ipaddress:port of your choice.
   pub web_debug: Option<String>,
+
+  #[clap(long, default_value_if("raw_json", Some("false"), Some("true")), min_values(0))]
+  /// Display the raw json response.
+  pub raw_json: bool,
 }
 
 impl VtArgs {
@@ -366,6 +376,7 @@ impl VtArgs {
     if self.mitre_techniques  == true       { beh_count += 1; }
     if self.ipt  == true                    { beh_count += 1; }
     if self.http == true                    { beh_count += 1; }
+
     if self.structure_stats == true         {
       att_count += 1;
       beh_count += 1;
@@ -509,20 +520,21 @@ impl Arguments {
       let mut file_request = String::new();
       let mut behaviour_request = String::new();
       let mut file_att = FileJsonOutput::default();
-      let mut file_att_test = FileJsonOutput::default();
+      // let mut file_att_test = FileJsonOutput::default();
       let mut beh_att = BehaviorJsonOutput::default();
       let arg_types = av.check_arg_types()?;
       let _file_bytes = settings.file_bytes.clone();
+      let raw_json = av.raw_json.clone();
 
       if arg_types.attributes == true {
         file_request.push_str(VirusTotal::query_file_attributes(&settings.file_hash, &settings.vt_api_key).as_str());
-        file_att = VirusTotal::parse_response(file_request.clone());
-        file_att_test = VirusTotal::parse_response(file_request.clone());
+        file_att = VirusTotal::parse_response(raw_json, file_request.clone());
+        // file_att_test = VirusTotal::parse_response(raw_json, file_request.clone());
       }
 
       if arg_types.behaviour == true {
         behaviour_request.push_str(VirusTotal::query_file_behaviour(&settings.file_hash, 10, &settings.vt_api_key)?.as_str());
-        beh_att = VirusTotal::parse_behavior_response(behaviour_request);
+        beh_att = VirusTotal::parse_behavior_response(raw_json, behaviour_request);
       }
 
       if av.av == true {
@@ -613,12 +625,12 @@ impl Arguments {
 
       if av.mitre_techniques == true {
         if let Some(m) = VirusTotal::get_mitre_attack_techniques(beh_att.clone()) {
-          println!("{m}");
+          println!("{}\n{}", m.title, m.contents);
         }
       }
 
       if av.structure_stats == true {
-        if let Some(s) = VirusTotal::get_structure_stats(file_att_test.clone(), beh_att.clone()) {
+        if let Some(s) = VirusTotal::get_structure_stats(file_att.clone(), beh_att.clone()) {
           println!("{}\n{}", s.title, s.contents);
         }
       }
