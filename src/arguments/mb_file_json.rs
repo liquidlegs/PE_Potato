@@ -189,7 +189,15 @@ pub struct Triage {
   pub link:             Option<String>,
   pub tags:             Option<Vec<String>>,
   pub signatures:       Option<Vec<TriageSignature>>,
-  pub malware_config:   Option<Vec<String>>,
+  #[serde(flatten)]
+  pub malware_config:   Option<Vec<MalwareConfig>>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct MalwareConfig {
+  pub extraction:   Option<String>,
+  pub family:       Option<String>,
+  pub c2:           Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

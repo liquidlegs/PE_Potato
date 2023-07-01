@@ -79,15 +79,13 @@ fn main() -> std::result::Result<(), GeneralError> {
 
   let mut av_filename_exists = false;
   let mut av_hash_exists = false;
-  // let mut upload_file = false;
 
   if let Some(a) = args.command.clone() {
     
     // Workout which subcommand was executed.
     match a {
       Action::VirusTotal(f) => {
-        // upload_file = f.upload;
-
+        
         if let Some(h) = f.filename {
           filename.push_str(h.as_str());
           av_filename_exists = true;
@@ -120,7 +118,7 @@ fn main() -> std::result::Result<(), GeneralError> {
         }
       }
 
-      Action::MalwareBazaar(mb) => {
+      Action::MalwareBazaar(_) => {
         state = AppState::MbSearch;
       }
 

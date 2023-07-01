@@ -17,9 +17,11 @@ use goblin::pe::{
   export::Export,
   import::Import,
 };
-use std::default;
+
+use std::fs::OpenOptions;
 use std::{
   fs::read,
+  io::Write,
   path::Path,
 };
 use comfy_table::{Table, Cell, Row, Color};
@@ -44,6 +46,9 @@ custom_error! {pub GeneralError
 }
 
 pub const CONFIG_JSON: &str = "config.json";
+pub const W_DBG_REL_PATH: &str = "..\\..\\config.json";
+pub const L_DBG_REL_PATH: &str = "../../config.json";
+pub const DF_CONFIG_D: &str = "{\n  \"vt_enable_search\": false,\n  \"vt_api_key\": \"\",\n  \"mb_enable_search\": false,\n  \"mb_enable_download\": false,\n  \"mb_api_key\": \"\"\n}";
 
 #[derive(Debug, Clone, Default)]
 pub struct CmdSettings {
@@ -111,6 +116,14 @@ pub enum MbQueryType {
   #[default]
   Time,
   Amount,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ConfigPath {
+  Release,
+  Debug,
+  Root,
+  Unknown,
 }
 
 #[derive(Args, Debug, Clone, Default)]
@@ -443,7 +456,7 @@ impl Arguments {
     let debug = av.debug.clone();
     
     // Get the apu key from the config file.
-    Self::load_config_file(settings).unwrap();
+    Self::load_config_file(settings)?;
 
     if settings.vt_enable_search.clone() == false {
       return Err(GeneralError::Config {
@@ -1314,6 +1327,102 @@ impl Arguments {
     table
   }
 
+  /**Funtion creates the config file if not already created.
+   * Params:
+   *  config_path: &str {The path to where the config file will be created}
+   * Returns bool
+   */
+  pub fn create_config_file(config_path: &str) -> bool {
+    let data = DF_CONFIG_D;
+
+    match OpenOptions::new().read(true).write(true).create(true).open(config_path) {
+      Ok(mut s) => {
+        if let Ok(f) = s.write(data.as_bytes()) {
+          println!("Config.json generated with {f} bytes");
+          true
+        }
+        else {
+          println!("{}: Failed to create config", style("Error").red().bright()); 
+          return false;
+        }
+      },
+      Err(e) => {
+        println!("{}: failed to create config file - {}", style("Error").red().bright(), style(e).cyan());
+        false
+      }
+    }
+  }
+
+  /**Function is wrapper for current_dir()
+   * Params:
+   *  None
+   * Returns Option<String>
+   */
+  pub fn get_pwd() -> Option<String> {
+    let mut out = String::from("");
+    
+    match std::env::current_dir() {
+      Ok(mut s) => {
+        if let Ok(o) = s.as_mut_os_string().clone().into_string() {
+          out.push_str(o.as_str());
+        }
+        else {
+          println!("{}: Unable to get present working diretory", style("Error").red().bright());
+          return None;
+        }
+      }
+      Err(e) => {
+        println!("{}: Unable to get present working diretory - {}", style("Error").red().bright(), style(e).cyan());
+        return None;
+      }
+    }
+    
+    Some(out)
+  }
+
+  /**Function checks if the config file exists
+   * Params:
+   *  path: &str {The path to the config file}
+   * Returns Result<(), GeneralError>
+   */
+  pub fn check_config_exists(path: &str) -> Result<(), GeneralError> {
+    match std::fs::File::open(path) {
+      Ok(s) => {
+        return Ok(());
+      }
+      Err(e) => {
+        return Err(GeneralError::Io { source: e });
+      }
+    }
+  }
+
+  /**Functio checks if the current working directory is in the project root, release and debug directories.
+   * Params:
+   *  None,
+   * Returns Result<Option<ConfigPath>, GeneralError>
+   */
+  pub fn check_current_path() -> std::result::Result<Option<ConfigPath>, GeneralError> {
+    let mut path = String::new();
+
+    if let Some(s) = Self::get_pwd() {
+      path.push_str(s.as_str());
+    }
+
+    let mut _delim = "";
+    match std::env::consts::OS {
+      "windows" =>  { _delim = "\\"; }
+      _ =>          { _delim = "/"; }
+    }
+
+    let split_path: Vec<&str> = path.split(_delim).collect();
+    match split_path[split_path.len()-1].to_lowercase().as_str() {
+      "release" =>    { return Ok(Some(ConfigPath::Release)); }
+      "debug" =>      { return Ok(Some(ConfigPath::Debug)); }
+      "pe_potato" =>  { return Ok(Some(ConfigPath::Root)); }
+      _ =>            { return Ok(None); }
+    }
+  }
+
   /**Function loads the config file into memory and reads the value for each key.
    * Params:
    *  settings: &mut CmdSettings {The config settings}
@@ -1321,8 +1430,45 @@ impl Arguments {
    */
   pub fn load_config_file(settings: &mut CmdSettings) -> std::io::Result<()> {
     let mut output = String::new();
-    let path = Path::new(CONFIG_JSON);
-    let buffer = read(path)?;
+    let mut pwd = ConfigPath::Unknown;
+    let mut _path_str = "";
+
+    // Get the current directory.
+    // Checks if the user is in the project, root, release, or debug directory.
+    if let Ok(p) = Self::check_current_path() {
+      if let Some(pth) = p {
+        pwd = pth;
+      }
+    }
+
+    if pwd == ConfigPath::Debug || pwd == ConfigPath::Release {
+      match std::env::consts::OS {
+        "windows" =>  { _path_str = W_DBG_REL_PATH; }
+        _ =>          { _path_str = L_DBG_REL_PATH; }
+      }
+    }
+
+    else if pwd == ConfigPath::Root {
+      _path_str = CONFIG_JSON;
+    }
+
+    else if pwd == ConfigPath::Unknown {
+      println!("{}: Unable to find config.json.\nThis is likely because you are not executing the binary from the projects root directory.",
+      style("Error").red().bright());
+    }
+
+    // Create the config if it does not exist.
+    if let Err(_) = Self::check_config_exists(_path_str) {
+      Self::create_config_file(_path_str);
+    }
+
+    // Read the config file into a buffer.
+    let path = Path::new(_path_str);
+    let mut buffer: Vec<u8> = Default::default();
+
+    if let Ok(r) = read(path) {
+      buffer = r;
+    }
 
     match String::from_utf8(buffer) {
       Ok(s) => {
@@ -1331,6 +1477,7 @@ impl Arguments {
       Err(_) => {}
     }
 
+    // Parse the buffer as json.
     let mut json_object = CmdSettingsJson::default();
     match serde_json::from_str::<CmdSettingsJson>(&output.clone()) {
       Ok(s) => {
