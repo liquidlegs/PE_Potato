@@ -39,7 +39,17 @@ pub struct MbData {
   pub ole_information:    Option<Ole>,
   pub yara_rules:         Option<Vec<MbYaraRule>>,
   pub vendor_intel:       Option<Vendor>,
-  pub comments:           Option<String>,
+  #[serde(flatten)]
+  pub comments:           Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct Comments {
+  pub id:               Option<String>,
+  pub date_added:       Option<String>,
+  pub twitter_handle:   Option<String>,
+  pub display_name:     Option<String>,
+  pub comment:          Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

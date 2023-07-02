@@ -13,7 +13,6 @@ pub struct VtArgType {
   pub attributes: bool,
   pub behaviour: bool,
 }
-
 pub struct VirusTotal {}
 impl VirusTotal {
 
