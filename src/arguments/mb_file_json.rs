@@ -123,6 +123,39 @@ pub struct Vendor {
 
   #[serde(rename = "FileScan-IO")]
   pub filescan_io: Option<FileScanIo>,
+
+  #[serde(rename = "Intezer")]
+  pub intezer: Option<Intezer>,
+
+  #[serde(rename = "UnpacMe")]
+  pub unpack_me: Option<Vec<UnpacMe>>,
+
+  #[serde(rename = "VMRay")]
+  pub vm_ray: Option<VMRay>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct VMRay {
+  pub verdict:            Option<String>,
+  pub malware_family:     Option<String>,
+  pub report_link:        Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct UnpacMe {
+  pub sha256_hash:    Option<String>,
+  pub md5_hash:       Option<String>,
+  pub sha1_hash:      Option<String>,
+  #[serde(flatten)]
+  pub detections:     Option<Vec<String>>,
+  pub link:           Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct Intezer {
+  pub verdict:      Option<String>,
+  pub family_name:  Option<String>,
+  pub analysis_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
