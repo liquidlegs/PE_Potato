@@ -18,7 +18,6 @@ use goblin::pe::{
   import::Import,
 };
 
-
 use std::fs::OpenOptions;
 use std::{
   fs::read,
@@ -305,6 +304,18 @@ pub struct VtArgs {
   #[clap(long, default_value_if("raw_json", Some("false"), Some("true")), min_values(0))]
   /// Display the raw json response.
   pub raw_json: bool,
+
+  #[clap(long, default_value_if("reg_open", Some("false"), Some("true")), min_values(0))]
+  /// Registry keys that a malware sample has opened [TODO]
+  pub reg_open: bool,
+
+  #[clap(long, default_value_if("reg_set", Some("false"), Some("true")), min_values(0))]
+  /// Registry keys that a malware sample has closed [TODO]
+  pub reg_set: bool,
+
+  #[clap(short, long, default_value_if("process_tree", Some("false"), Some("true")), min_values(0))]
+  /// The process tree [TODO]
+  pub process_tree: bool,
 }
 
 impl VtArgs {

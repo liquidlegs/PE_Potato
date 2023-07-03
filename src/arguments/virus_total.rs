@@ -680,6 +680,10 @@ impl VirusTotal {
     ]));
 
     let mut table = Table::new();
+    table.set_header(Row::from(vec![
+      Cell::from("Key").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Value").bg(Color::DarkBlue).fg(Color::White),
+    ]));
 
     // Prepares the strings to hold the information to be displayed in the table.
     let mut names = String::new();
@@ -1035,82 +1039,80 @@ impl VirusTotal {
     
     let mut table = Table::new();
     table.set_header(vec![
-      Cell::from("Resource Type").fg(Color::Yellow),
-      Cell::from("Count").fg(Color::Yellow),
+      Cell::from("Resource Type").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Count").bg(Color::DarkBlue).fg(Color::White),
     ]);
 
-    // let mut resource = String::new();
-    // let mut count = String::new();
     let mut rows: Vec<Row> = Default::default();
     let data = output_data.data?.attributes?.pe_info?.resource_types?;
 
     if let Some(icon) = data.rt_icon {
       rows.push(Row::from(vec![
         Cell::from("RT_ICON").fg(Color::Green),
-        Cell::from(format!("{icon}")).fg(Color::DarkYellow),
+        Cell::from(format!("{icon}")).fg(Color::Yellow),
       ]));
     }
 
     if let Some(dialog) = data.rt_dialog {
       rows.push(Row::from(vec![
         Cell::from("RT_DIALOG").fg(Color::Green),
-        Cell::from(format!("{dialog}")).fg(Color::DarkYellow),
+        Cell::from(format!("{dialog}")).fg(Color::Yellow),
       ]));
     };
 
     if let Some(cursor) = data.rt_cursor {
       rows.push(Row::from(vec![
         Cell::from("RT_CURSOR").fg(Color::Green),
-        Cell::from(format!("{cursor}")).fg(Color::DarkYellow),
+        Cell::from(format!("{cursor}")).fg(Color::Yellow),
       ]));
     }
 
     if let Some(acc) = data.rt_accelerator {
       rows.push(Row::from(vec![
         Cell::from("RT_ACCELERATOR").fg(Color::Green),
-        Cell::from(format!("{acc}")).fg(Color::DarkYellow),
+        Cell::from(format!("{acc}")).fg(Color::Yellow),
       ]));
     }
 
     if let Some(bit) = data.rt_bitmap {
       rows.push(Row::from(vec![
         Cell::from("RT_BITMAP").fg(Color::Green),
-        Cell::from(format!("{bit}")).fg(Color::DarkYellow),
+        Cell::from(format!("{bit}")).fg(Color::Yellow),
       ]));
     }
 
     if let Some(mani) = data.rt_manifest {
       rows.push(Row::from(vec![
         Cell::from("RT_MANIFEST").fg(Color::Green),
-        Cell::from(format!("{mani}")).fg(Color::DarkYellow),
+        Cell::from(format!("{mani}")).fg(Color::Yellow),
       ]));
     }
 
     if let Some(g_icon) = data.rt_group_icon {
       rows.push(Row::from(vec![
         Cell::from("RT_GROUP_ICON").fg(Color::Green),
-        Cell::from(format!("{g_icon}")).fg(Color::DarkYellow),
+        Cell::from(format!("{g_icon}")).fg(Color::Yellow),
       ]));
     }
 
     if let Some(g_cursor) = data.rt_group_cursor {
       rows.push(Row::from(vec![
         Cell::from("RT_GROUP_CURSOR").fg(Color::Green),
-        Cell::from(format!("{g_cursor}")).fg(Color::DarkYellow),
+        Cell::from(format!("{g_cursor}")).fg(Color::Yellow),
       ]));
     }
 
     if let Some(_str) = data.rt_string {
       rows.push(Row::from(vec![
         Cell::from("RT_STRING").fg(Color::Green),
-        Cell::from(format!("{_str}")).fg(Color::DarkYellow),
+        Cell::from(format!("{_str}")).fg(Color::Yellow),
       ]));
     }
 
     if let Some(ver) = data.rt_version {
       rows.push(Row::from(vec![
         Cell::from("RT_VERSION").fg(Color::Green),
-        Cell::from(format!("{ver}")).fg(Color::DarkYellow),
+        Cell::from(format!("{ver}")).fg(Color::Yellow),
       ]));
     }
 
@@ -1395,8 +1397,8 @@ impl VirusTotal {
     
     let mut table = Table::new();
     table.set_header(vec![
-      Cell::from("Symbol Name").fg(Color::Yellow),
-      Cell::from("Library").fg(Color::Yellow),
+      Cell::from("Symbol Name").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Library").bg(Color::DarkBlue).fg(Color::White),
     ]);
 
     let mut libs = String::new();

@@ -27,7 +27,7 @@ If you are someone who does not care about threat intelligence and you just want
 
 Using the Virus Total client, users can create queries about malicious files by supplying a file hash or a file path.
 ![ pe3 ](assets/2.png)
-
+![ pe4 ](assets/4.png)
 
 
 ## Features

@@ -40,7 +40,7 @@ pub struct MbData {
   pub yara_rules:         Option<Vec<MbYaraRule>>,
   pub vendor_intel:       Option<Vendor>,
   #[serde(flatten)]
-  pub comments:           Option<Vec<String>>,
+  pub comments:           Option<Vec<Comments>>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
