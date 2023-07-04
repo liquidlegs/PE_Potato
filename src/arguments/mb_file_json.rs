@@ -98,7 +98,22 @@ pub struct MbIntelligence {
   pub clamav:             Option<Vec<String>>,
   pub uploads:            Option<String>,
   pub downloads:          Option<String>,
-  pub mail:               Option<String>,
+  #[serde(flatten)]
+  pub mail:               Option<Mail>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct Mail {
+  #[serde(rename = "CH")]
+  pub ch:       Option<String>,
+  
+  #[serde(rename = "NL")]
+  pub nl:       Option<String>,
+  
+  #[serde(rename = "IT")]
+  pub it:       Option<String>,
+  
+  pub generic:  Option<String>,
 }
 
 // Structure is yet to be filled out.
