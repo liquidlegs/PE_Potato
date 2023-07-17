@@ -90,3 +90,40 @@ Using the Virus Total client, users can create queries about malicious files by 
   - Download samples in bulk
   - Generate file hashes from disk
   - Recent malware samples (100 most recent samples or samples added in the last hour)
+
+  ## Configuration
+  PE Potato can be configured to use the Virus Total and Malware Bazaar APIs.
+  Utilizing Virus Total and Malware Bazaar each requires an API key.
+
+  Enabling features can be done by changing values from `false` to `true` and by inserting API keys into the configuration file.
+  For those who feel uncomfortable directly storing API keys in the configuration file, bash-style environment variables are supported and can be used across all platforms.
+
+  There is a bug in the Malware Bazaar API by abuse.ch that allows users to query the malware database without an API. As this may be fixed in the future, PE Potato will require an API in a future update.
+  Example configuration:
+  ```json
+  {
+    "vt_enable_search": true,
+    "vt_api_key": "$MY_VIRUS_TOTAL_API_KEY",
+    "mb_enable_search": true,
+    "mb_enable_download": false,
+    "mb_api_key": "$MALWARE_BAZAAR_API_KEY"
+  }
+  ```
+
+  ## Installing Rust
+  1. Following the instructions on [rustlang.org](https://www.rust-lang.org/tools/install)
+  2. Download and install rustup
+  3. Verify cargo is correctly installed with
+  ```bash
+  cargo -V
+  ```
+
+  ## Building PE Potato
+  1. Git clone PE Potato
+  2. Cd into the root project directory
+  3. Enter the following command
+  ```bash
+  cargo build --release
+  ```
+
+  You find the compiled binary in `/target/release/`
