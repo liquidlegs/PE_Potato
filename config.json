@@ -1,7 +1,7 @@
 {
   "vt_enable_search": false,
-  "vt_api_key": "",
+  "vt_api_key": "$VRS_TTL_KEY",
   "mb_enable_search": false,
   "mb_enable_download": false,
-  "mb_api_key": ""
+  "mb_api_key": "$MW_BZR_KEY"
 }
