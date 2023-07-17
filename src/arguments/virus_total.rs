@@ -955,7 +955,7 @@ impl VirusTotal {
     let mut title = Table::new();
 
     title.add_row(Row::from(vec![
-      Cell::from("")
+      Cell::from("File Names")
       .set_alignment(comfy_table::CellAlignment::Center)
       .fg(Color::Yellow)
     ]));
@@ -963,7 +963,7 @@ impl VirusTotal {
     let mut table = Table::new();
 
     table.set_header(vec![
-      Cell::from("Name").fg(Color::Yellow),
+      Cell::from("Name").bg(Color::DarkBlue).fg(Color::White),
     ]);
 
     let mut rows: Vec<Row> = Default::default();
@@ -976,6 +976,8 @@ impl VirusTotal {
     }
 
     table.add_rows(rows);
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
 
     out.title = title;
     out.contents = table;
@@ -1206,8 +1208,21 @@ impl VirusTotal {
       Cell::from("Status_code").bg(Color::DarkBlue).fg(Color::White),
     ]);
 
+    let get_method_colour = |method: &str| {
+      match method {
+        "GET" =>      { return Color::Green; }
+        "POST" =>     { return Color::DarkYellow; }
+        "PUT" =>      { return Color::DarkCyan; }
+        "UPDATE" =>   { return Color::Blue; }
+        "DELETE" =>   { return Color::Red; }
+        "HEAD" =>     { return Color::Cyan; }
+        _ =>          { return Color::White; }
+      }
+    };
+
     let mut rows: Vec<Row> = Default::default();
     let data = output_data.data?;
+    let empty_cell = Cell::from("");
     
     for i in data {
       
@@ -1220,15 +1235,24 @@ impl VirusTotal {
         let mut cells: Vec<Cell> = Default::default();
         
         if let Some(m) = idx.request_method {
-          cells.push(Cell::from(m).fg(Color::Green));
+          cells.push(Cell::from(m.clone()).fg(get_method_colour(m.as_str())));
+        }
+        else {
+          cells.push(empty_cell.clone());
         }
 
         if let Some(u) = idx.url {
           cells.push(Cell::from(u).fg(Color::DarkCyan));
         }
+        else {
+          cells.push(empty_cell.clone());
+        }
 
         if let Some(s) = idx.response_status_code {
           cells.push(Cell::from(s).fg(Color::Yellow));
+        }
+        else {
+          cells.push(empty_cell.clone());
         }
 
         rows.push(Row::from(cells));

@@ -14,6 +14,14 @@ enum AppState {
   Waiting,
 }
 
+/**Intergrate the following tools & apis
+  Malware Bazaar:  A resource for sharing malware samples.
+  Feodo Tracker:  A resource used to track botnet command and control (C2) infrastructure linked with Emotet, Dridex and TrickBot.
+  SSL Blacklist:  A resource for collecting and providing a blocklist for malicious SSL certificates and JA3/JA3s fingerprints.
+  URL Haus:  A resource for sharing malware distribution sites.
+  Threat Fox:  A resource for sharing indicators of compromise (IOCs).
+ */
+
 /**Function handles how to add the file hash to the CmdSettings when manually speicified or generated with a file path.
  * Params:
  *  filename_exists: bool       {If true the hash is generated with a file path}

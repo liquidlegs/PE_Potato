@@ -1404,6 +1404,26 @@ impl Arguments {
     Some(out)
   }
 
+  /**function expands environment variables as specified by the user.
+   * Params:
+   *  input: &str {The environment variable}
+   * Returns Option<String>
+   */
+  pub fn expand_env_var(input: &str) -> Option<String> {
+
+    if let Some(e) = std::env::var_os(input) {
+      if let Ok(temp) = e.into_string() {
+        Some(temp)
+      }
+      
+      else { return None; }
+    }
+
+    else {
+      return None;
+    }
+  }
+
   /**Function checks if the config file exists
    * Params:
    *  path: &str {The path to the config file}
@@ -1523,8 +1543,33 @@ impl Arguments {
    * Returns Result<()>
    */
   pub fn parse_config_file(settings: &mut CmdSettings, json_object: &CmdSettingsJson) -> std::io::Result<()> {
-    if let Some(vt_api) = json_object.vt_api_key.clone() {
-      if vt_api.len() >= 32 {
+    let get_env = |input: String| -> Option<String> {
+      let f_char: Vec<char> = input.clone().chars().collect();
+      if f_char.len() == 0 { return None; }
+
+      match f_char[0] {
+        '$' => {
+          let temp_string = String::from(&input[1..]);
+
+          if let Some(s) = Self::expand_env_var(temp_string.as_str()) {
+            Some(s)
+          }
+
+          else { None }
+        }
+
+        _ => {
+          None
+        }
+      }
+    };
+    
+    if let Some(vt_api) = json_object.vt_api_key.clone() {  
+      if let Some(s) = get_env(vt_api.clone()) {
+        settings.vt_api_key.push_str(s.as_str());
+      }
+      
+      else if vt_api.len() >= 32 {
         settings.vt_api_key.push_str(vt_api.as_str());
       }
     }
@@ -1534,7 +1579,11 @@ impl Arguments {
     }
 
     if let Some(mb_api) = json_object.mb_api_key.clone() {
-      settings.mb_api_key.push_str(mb_api.as_str());
+      if let Some(s) = get_env(mb_api.clone()) {
+        settings.mb_api_key.push_str(s.as_str());
+      }
+
+      else { settings.mb_api_key.push_str(mb_api.as_str()); }
     }
 
     if let Some(mb_enable_download) = json_object.mb_enable_download.clone() {
