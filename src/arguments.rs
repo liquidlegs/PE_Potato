@@ -106,9 +106,20 @@ pub struct Arguments {
 
 #[derive(clap::Subcommand, Debug, Clone)]
 pub enum Action {
-  VirusTotal(VtArgs),
+  /// Parse local PE files similar to PEstudio and CFF Explorer
   Bin(BinArgs),
+  
+  /// Query the Virus Total API.
+  VirusTotal(VtArgs),
+  
+  /// Query the Malware Bazaar API.
   MalwareBazaar(MbArgs),
+  
+  /// Query the YARAify API. [Not Implemented]
+  Yaraify(YrArgs),
+  
+  /// Query the ThreatFox API. [Not Implemented]
+  ThreatFox(TfArgs),
 }
 
 #[derive(Debug, Clone, Default, clap::ValueEnum, PartialEq)]
@@ -132,6 +143,16 @@ pub enum CTerm {
   Bg,
 }
 
+// Yaraify arguments.
+#[derive(Debug, Clone, Default, Args)]
+pub struct YrArgs {}
+impl YrArgs {}
+
+// ThreatFox arguments.
+#[derive(Debug, Clone, Default, Args)]
+pub struct TfArgs {}
+impl TfArgs {}
+
 #[derive(Args, Debug, Clone, Default)]
 pub struct MbArgs {
   #[clap(short, long)]
@@ -150,11 +171,11 @@ pub struct MbArgs {
   /// Download malware sample. [TODO]
   pub download: Option<String>,
 
-  #[clap(short = 't', long)]
+  #[clap(long)]
   /// Query malware sample by tag. [tag:n_results] - Eg: rootkit:15
   pub query_tag: Option<String>,
 
-  #[clap(short = 's', long)]
+  #[clap(long)]
   /// Query malware sample by signature. [signature:results] - Eg: AgentTesla:100
   pub query_signature: Option<String>,
   
@@ -162,9 +183,33 @@ pub struct MbArgs {
   /// Query malware sample by file type [filetype:n_results] - Eg: docx:30 
   pub query_filetype: Option<String>,
   
-  #[clap(short, long, default_value_if("yara", Some("false"), Some("true")), min_values(0))]
+  #[clap(long)]
   /// Query a yara rule. [TODO]
-  pub yara: bool,
+  pub query_yara: Option<String>,
+
+  #[clap(long)]
+  /// Query by clamAv signature
+  pub query_clamv: Option<String>,
+
+  #[clap(long)]
+  /// Query by gimphash
+  pub query_gimphash: Option<String>,
+
+  #[clap(long)]
+  /// Query by dhash
+  pub query_dhash: Option<String>,
+
+  #[clap(long)]
+  /// Query bu imphash
+  pub query_imphash: Option<String>,
+
+  #[clap(long)]
+  /// Query by telfhash
+  pub query_telfhash: Option<String>,
+
+  #[clap(long)]
+  /// Query by tlsh
+  pub query_tlsh: Option<String>,
 
   #[clap(long, default_value_if("debug", Some("false"), Some("true")), min_values(0))]
   /// Display debug messages [TODO]
@@ -180,8 +225,37 @@ impl MbArgs {
   pub fn check_valid_flags(&self) -> usize {
     let mut count: usize = 0;
     
-    if self.yara == true                { count += 1; }
-    if self.debug == true               { count += 1; }
+    if let Some(_) = self.query_yara.clone() {
+      count += 1;
+    }
+
+    if let Some(_) = self.query_clamv.clone() {
+      count += 1;
+    }
+
+    if let Some(_) = self.query_dhash.clone() {
+      count += 1;
+    }
+
+    if let Some(_) = self.query_gimphash.clone() {
+      count += 1;
+    }
+
+    if let Some(_) = self.query_imphash.clone() {
+      count += 1;
+    }
+
+    if let Some(_) = self.query_telfhash.clone() {
+      count += 1;
+    }
+
+    if let Some(_) = self.query_tlsh.clone() {
+      count += 1;
+    }
+
+    if self.debug.clone() == true {
+      count += 1;
+    }
 
     if let Some(_) = self.query_tag.clone() {
       count += 1;
@@ -269,12 +343,12 @@ pub struct VtArgs {
   /// Display tags.
   pub tags: bool,
 
-  // #[clap(long = "mtact", default_value_if("mtact", Some("false"), Some("true")), min_values(0))]
-  // /// Display mitre attack tactics releating to a file. [TODO]
-  // pub mitre_tactics: bool,
+  #[clap(long, default_value_if("dns", Some("false"), Some("true")), min_values(0))]
+  /// Display Dns lookups
+  pub dns: bool,
   
-  #[clap(long = "mtech", default_value_if("mtech", Some("false"), Some("true")), min_values(0))]
-  /// Display mitre attack techniques relating to a file. [TODO]
+  #[clap(short = 'm', long = "tech", default_value_if("mtech", Some("false"), Some("true")), min_values(0))]
+  /// Display mitre attack techniques relating to a file.
   pub mitre_techniques: bool,
 
   #[clap(long, default_value_if("ipt", Some("false"), Some("true")), min_values(0))]
@@ -342,13 +416,15 @@ impl VtArgs {
     if self.imports == true                 { count += 1; }
     if self.exports == true                 { count += 1; }
     if self.tags == true                    { count += 1; }
-    // if self.mitre_tactics  == true          { count += 1; }
     if self.mitre_techniques  == true       { count += 1; }
     if self.ip  == true                     { count += 1; }
     if self.http == true                    { count += 1; }
     if self.structure_stats == true         { count += 1; }
     if self.upload == true                  { count += 1; }
     if self.debug == true                   { count += 1; }
+    if self.dns == true                     { count += 1; }
+    if self.reg_open == true                { count += 1; }
+    if self.reg_set == true                 { count += 1; }
     
     if let Some(_) = self.filename.clone() {
       count += 1;
@@ -384,10 +460,12 @@ impl VtArgs {
     if self.imports == true                 { att_count += 1; }
     if self.exports == true                 { att_count += 1; }
     if self.tags == true                    { att_count += 1; }
-    // if self.mitre_tactics  == true          { beh_count += 1; }
     if self.mitre_techniques  == true       { beh_count += 1; }
     if self.ip  == true                     { beh_count += 1; }
     if self.http == true                    { beh_count += 1; }
+    if self.dns == true                     { beh_count += 1; }
+    if self.reg_open == true                { beh_count += 1; }
+    if self.reg_set == true                 { beh_count += 1; }
 
     if self.structure_stats == true         {
       att_count += 1;
@@ -538,10 +616,17 @@ impl Arguments {
       let _file_bytes = settings.file_bytes.clone();
       let raw_json = av.raw_json.clone();
 
+      let display_table = |title: Table, contents: Table| {
+        let lines = contents.lines().count();
+  
+        if lines > 4 {
+          println!("{}\n{}", title, contents);
+        }
+      };
+
       if arg_types.attributes == true {
         file_request.push_str(VirusTotal::query_file_attributes(&settings.file_hash, &settings.vt_api_key).as_str());
         file_att = VirusTotal::parse_response(raw_json, file_request.clone());
-        // file_att_test = VirusTotal::parse_response(raw_json, file_request.clone());
       }
 
       if arg_types.behaviour == true {
@@ -550,38 +635,38 @@ impl Arguments {
       }
 
       if av.av == true {
-        if let Some(det) = VirusTotal::search_detections(file_att.clone()) {
-          println!("{}\n{}", det.title, det.contents);
+        if let Some(t) = VirusTotal::search_detections(file_att.clone()) {
+          display_table(t.title, t.contents);
         }
       }
 
       if av.general_info == true {
-        if let Some(g) = VirusTotal::get_general_info(file_att.clone()) {
-          println!("{}\n{}", g.title, g.contents);
+        if let Some(t) = VirusTotal::get_general_info(file_att.clone()) {
+          display_table(t.title, t.contents);
         }
       }
 
       if av.sections == true {
-        if let Some(sect) = VirusTotal::get_sections(file_att.clone()) {
-          println!("{}\n{}", sect.title, sect.contents);
+        if let Some(t) = VirusTotal::get_sections(file_att.clone()) {
+          display_table(t.title, t.contents);
         }
       }
 
       if av.resource_details == true {
-        if let Some(d) = VirusTotal::get_resource_details(file_att.clone()) {
-          println!("{}\n{}", d.title, d.contents);
+        if let Some(t) = VirusTotal::get_resource_details(file_att.clone()) {
+          display_table(t.title, t.contents);
         }
       }
 
       if av.resources_by_type == true {
-        if let Some(rs) = VirusTotal::get_resource_by_type(file_att.clone()) {
-          println!("{}\n{}", rs.title, rs.contents);
+        if let Some(t) = VirusTotal::get_resource_by_type(file_att.clone()) {
+          display_table(t.title, t.contents);
         }
       }
 
       if av.yara_rules  == true {
-        if let Some(yara) = VirusTotal::get_yara_rules(file_att.clone()) {
-          println!("{}\n{}", yara.title, yara.contents);
+        if let Some(t) = VirusTotal::get_yara_rules(file_att.clone()) {
+          display_table(t.title, t.contents);
         }
       }
 
@@ -590,60 +675,69 @@ impl Arguments {
       }
 
       if av.names == true {
-        if let Some(n) = VirusTotal::get_file_names(file_att.clone()) {
-          println!("{}\n{}", n.title, n.contents);
+        if let Some(t) = VirusTotal::get_file_names(file_att.clone()) {
+          display_table(t.title, t.contents);
         }
       }
 
       if av.compiler_products == true {
-        if let Some(c) = VirusTotal::get_compiler_products(file_att.clone()) {
-          println!("{}\n{}", c.title, c.contents);
+        if let Some(t) = VirusTotal::get_compiler_products(file_att.clone()) {
+          display_table(t.title, t.contents);
         }
       }
 
       if av.imports  == true {
-        if let Some(i) = VirusTotal::get_imports(file_att.clone()) {
-          println!("{}\n{}", i.title, i.contents);
+        if let Some(t) = VirusTotal::get_imports(file_att.clone()) {
+          display_table(t.title, t.contents);
         }
       }
 
       if av.exports == true {
-        if let Some(ex) = VirusTotal::get_exports(file_att.clone()) {
-          println!("{}\n{}", ex.title, ex.contents);
+        if let Some(t) = VirusTotal::get_exports(file_att.clone()) {
+          display_table(t.title, t.contents);
         }
       } 
 
       if av.tags == true {
         if let Some(t) = VirusTotal::get_tags(file_att.clone()) {
-          println!("{}\n{}", t.title, t.contents);
+          display_table(t.title, t.contents);
         }
       }
 
       if av.ip == true {
-        if let Some(ip) = VirusTotal::get_ip_traffic(beh_att.clone()) {
-          println!("{}\n{}", ip.title, ip.contents);
+        if let Some(t) = VirusTotal::get_ip_traffic(beh_att.clone()) {
+          display_table(t.title, t.contents);
         }
       }
 
       if av.http == true {
-        if let Some(h) = VirusTotal::get_http_conv(beh_att.clone()) {
-          println!("{}\n{}", h.title, h.contents);
+        if let Some(t) = VirusTotal::get_http_conv(beh_att.clone()) {
+          display_table(t.title, t.contents);
         }
       }
 
-      // if av.mitre_tactics == true {
-      //   todo!("Soon to be implemented");
-      // }
+      if av.dns == true {
+        if let Some(t) = VirusTotal::get_dns_requests(beh_att.clone()) {
+          display_table(t.title, t.contents);
+        }
+      }
+
+      if av.reg_open == true {
+        println!("reg open");
+        if let Some(t) = VirusTotal::get_registry_keys_open(beh_att.clone()) {
+          display_table(t.title, t.contents);
+        }
+      }
 
       if av.mitre_techniques == true {
-        if let Some(m) = VirusTotal::get_mitre_attack_techniques(beh_att.clone()) {
-          println!("{}\n{}", m.title, m.contents);
+        if let Some(t) = VirusTotal::get_mitre_attack_techniques(beh_att.clone()) {
+          display_table(t.title, t.contents);
         }
       }
 
       if av.structure_stats == true {
-        if let Some(s) = VirusTotal::get_structure_stats(file_att.clone(), beh_att.clone()) {
-          println!("{}\n{}", s.title, s.contents);
+        if let Some(t) = VirusTotal::get_structure_stats(file_att.clone(), beh_att.clone()) {
+          display_table(t.title, t.contents);
         }
       }
     }
@@ -674,6 +768,14 @@ impl Arguments {
       }
     }
 
+    let display_table = |title: Table, contents: Table| {
+      let lines = contents.lines().count();
+
+      if lines > 4 {
+        println!("{}\n{}", title, contents);
+      }
+    };
+
     let mb = MalwareBazaar {
       debug: mb_args.debug.clone(), 
       raw_json: mb_args.raw_json.clone(), 
@@ -686,19 +788,55 @@ impl Arguments {
 
     if let Some(q) = mb_args.query_filetype {
       if let Some(t) = mb.get_query_items(q, SearchType::FileType) {
-        println!("{}\n{}", t.title, t.contents);
+        display_table(t.title, t.contents);
       }
     }
 
     if let Some(q) = mb_args.query_tag {
       if let Some(t) = mb.get_query_items(q, SearchType::Tag) {
-        println!("{}\n{}", t.title, t.contents);
+        display_table(t.title, t.contents);
       }
     }
 
     if let Some(q) = mb_args.query_signature {
       if let Some(t) = mb.get_query_items(q, SearchType::Signature) {
-        println!("{}\n{}", t.title, t.contents);
+        display_table(t.title, t.contents);
+      }
+    }
+
+    if let Some(q) = mb_args.query_clamv {
+      if let Some(t) = mb.get_query_items(q, SearchType::ClamAv) {
+        display_table(t.title, t.contents);
+      }
+    }
+
+    if let Some(q) = mb_args.query_dhash {
+      if let Some(t) = mb.get_query_items(q, SearchType::Dhash) {
+        display_table(t.title, t.contents);
+      }
+    }
+
+    if let Some(q) = mb_args.query_gimphash {
+      if let Some(t) = mb.get_query_items(q, SearchType::GimpHash) {
+        display_table(t.title, t.contents);
+      }
+    }
+
+    if let Some(q) = mb_args.query_imphash {
+      if let Some(t) = mb.get_query_items(q, SearchType::ImpHash) {
+        display_table(t.title, t.contents);
+      }
+    }
+
+    if let Some(q) = mb_args.query_telfhash {
+      if let Some(t) = mb.get_query_items(q, SearchType::TelfHash) {
+        display_table(t.title, t.contents);
+      }
+    }
+
+    if let Some(q) = mb_args.query_tlsh {
+      if let Some(t) = mb.get_query_items(q, SearchType::Tlsh) {
+        display_table(t.title, t.contents);
       }
     }
 
@@ -710,21 +848,9 @@ impl Arguments {
         let y_rules = s_table.1;    // Yara Rules
         let intel = s_table.2;    // Sandbox Intel
 
-        let fi_lines = f_info.contents.lines().count();
-        let y_lines = y_rules.contents.lines().count();
-        let it_lines = intel.contents.lines().count();
-
-        if fi_lines > 2 {
-          println!("{}\n{}", f_info.title, f_info.contents);
-        }
-
-        if y_lines > 2 {
-          println!("{}\n{}", y_rules.title, y_rules.contents);
-        }
-
-        if it_lines > 2 {
-          println!("{}\n{}", intel.title, intel.contents);
-        }
+        display_table(f_info.title, f_info.contents);
+        display_table(y_rules.title, y_rules.contents);
+        display_table(intel.title, intel.contents);
       }
     }
 

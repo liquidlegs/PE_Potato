@@ -72,6 +72,13 @@ pub struct BehaviourAttributes {
   pub mitre_attack_techniques:      Option<Vec<MitreAttackTechniques>>,
   pub ip_traffic:                   Option<Vec<IpTraffic>>,
   pub http_conversations:           Option<Vec<HttpConversations>>,
+  pub dns_lookups:                  Option<Vec<DnsLookup>>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct DnsLookup {
+  pub resolved_ips:       Option<Vec<String>>,
+  pub hostname:           Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]

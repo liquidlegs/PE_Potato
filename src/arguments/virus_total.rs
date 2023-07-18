@@ -4,7 +4,7 @@ use reqwest::{blocking::multipart::{Form, Part}, header::{USER_AGENT, HOST, ACCE
 use super::{
   vt_file_json::*,
   ClientBuilder, Method, 
-  GeneralError, vt_behaviour_json::{BehaviorJsonOutput, IpTraffic, HttpConversations, MitreAttackTechniques, BehaviourData},
+  GeneralError, vt_behaviour_json::{BehaviorJsonOutput, IpTraffic, HttpConversations, MitreAttackTechniques, BehaviourData, DnsLookup},
   CombinedTable, CTerm,
 };
 
@@ -49,12 +49,17 @@ impl VirusTotal {
     let mut title = Table::new();
 
     title.add_row(Row::from(vec![
-      Cell::from("Structure Statistics")
+      Cell::from("Structure Statistics\n(File Attributes)")
       .set_alignment(comfy_table::CellAlignment::Center)
       .fg(Color::Yellow)
     ]));
     
     let mut table = Table::new();
+    table.set_header(Row::from(vec![
+      Cell::from("Key").bg(Color::DarkBlue).fg(Color::White).set_alignment(comfy_table::CellAlignment::Center),
+      Cell::from("Information Available").bg(Color::DarkBlue).fg(Color::White).set_alignment(comfy_table::CellAlignment::Center),
+    ]));
+
     let f_data = file_data.data?.attributes?;
     let b_data = behaviour_data.data?;
     let mut rows: Vec<Row> = Default::default();
@@ -328,6 +333,7 @@ impl VirusTotal {
       rows.push(Self::get_preset_row("Reputation", false));
     }
 
+    // Values stores the number of structures returned from the API query.
     let mut _meta: usize = 0;
     let mut _analysis_date: usize = 0;
     let mut _behash: usize = 0;
@@ -378,9 +384,12 @@ impl VirusTotal {
     let mut _ip_traffic: usize = 0;
     let mut _http_conversations: usize = 0;
 
+    // The code below will the behaviour stats
     for i in b_data {
       let att = i.attributes?;
     }
+
+    // Place title and contents here.....
 
     table.add_rows(rows);
     title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
@@ -1300,12 +1309,12 @@ impl VirusTotal {
 
 
   #[allow(dead_code)]
-  pub fn get_registry_keys_open(_output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+  pub fn get_registry_keys_open(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
     
     title.add_row(Row::from(vec![
-      Cell::from("Registry Keys Open").fg(Color::Yellow)
+      Cell::from("Registry Keys Open").fg(Color::Yellow).set_alignment(comfy_table::CellAlignment::Center)
     ]));
     
     let mut table = Table::new();
@@ -1313,8 +1322,23 @@ impl VirusTotal {
       Cell::from("Key").bg(Color::DarkBlue).fg(Color::White),
     ]));
 
-    // Place code below.....
+    let data = output_data.data?;
+    let mut rows: Vec<Row> = Default::default();
+
+    for i in data {
+      let att = i.attributes?;
+      if let Some(keys) = att.registry_keys_opened {
+        
+        for idx in keys {
+          rows.push(Row::from(vec![
+            Cell::from(idx).fg(Color::Green)
+          ]));
+        }
+      }
+
+    }
   
+    table.add_rows(rows);
     title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
     table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
 
@@ -1350,7 +1374,7 @@ impl VirusTotal {
 
 
   #[allow(dead_code)]
-  pub fn get_dns_requests(_output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+  pub fn get_dns_requests(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -1360,13 +1384,58 @@ impl VirusTotal {
 
     let mut table = Table::new();
     table.set_header(Row::from(vec![
-      Cell::from("Method").fg(Color::White).bg(Color::DarkBlue),
-      Cell::from("Domain").fg(Color::White).bg(Color::DarkBlue),
-      Cell::from("Code").fg(Color::White).bg(Color::DarkBlue),
+      Cell::from("Resolved IPs").fg(Color::White).bg(Color::DarkBlue),
+      Cell::from("Hostname").fg(Color::White).bg(Color::DarkBlue),
     ]));
 
-    // Place code below.....
+    let get_ips = |ip: Vec<String>| -> String {
+      let mut out = String::new();
 
+      for i in ip {
+        out.push_str(i.as_str());
+        out.push('\n');
+      }
+
+      out.pop();
+      out
+    };
+
+    let data = output_data.data?;
+    let mut rows: Vec<Row> = Default::default();
+
+    for i in data {
+      let att = i.attributes?;
+
+      if let Some(dns) = att.dns_lookups {
+
+        for idx in dns {
+          let mut ips = String::new();
+          let mut cells: Vec<Cell> = Default::default();
+  
+          if let Some(ip) = idx.resolved_ips {
+            ips.push_str(get_ips(ip).as_str());
+            cells.push(Cell::from(ips).fg(Color::Green));
+          }
+          
+          else {
+            cells.push(Cell::from(""));
+          }
+  
+          if let Some(h) = idx.hostname {
+            cells.push(Cell::from(h).fg(Color::DarkCyan));
+          }
+  
+          else {
+            cells.push(Cell::from(""));
+          }
+  
+          rows.push(Row::from(cells));
+        }
+      }
+
+    }
+
+    table.add_rows(rows);
     title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
     table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
 
