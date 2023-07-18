@@ -269,9 +269,9 @@ pub struct VtArgs {
   /// Display tags.
   pub tags: bool,
 
-  #[clap(long = "mtact", default_value_if("mtact", Some("false"), Some("true")), min_values(0))]
-  /// Display mitre attack tactics releating to a file. [TODO]
-  pub mitre_tactics: bool,
+  // #[clap(long = "mtact", default_value_if("mtact", Some("false"), Some("true")), min_values(0))]
+  // /// Display mitre attack tactics releating to a file. [TODO]
+  // pub mitre_tactics: bool,
   
   #[clap(long = "mtech", default_value_if("mtech", Some("false"), Some("true")), min_values(0))]
   /// Display mitre attack techniques relating to a file. [TODO]
@@ -279,7 +279,7 @@ pub struct VtArgs {
 
   #[clap(long, default_value_if("ipt", Some("false"), Some("true")), min_values(0))]
   /// Displays ip traffic.
-  pub ipt: bool,
+  pub ip: bool,
 
   #[clap(long, default_value_if("http", Some("false"), Some("true")), min_values(0))]
   /// Display HTTP conversations.
@@ -342,9 +342,9 @@ impl VtArgs {
     if self.imports == true                 { count += 1; }
     if self.exports == true                 { count += 1; }
     if self.tags == true                    { count += 1; }
-    if self.mitre_tactics  == true          { count += 1; }
+    // if self.mitre_tactics  == true          { count += 1; }
     if self.mitre_techniques  == true       { count += 1; }
-    if self.ipt  == true                    { count += 1; }
+    if self.ip  == true                     { count += 1; }
     if self.http == true                    { count += 1; }
     if self.structure_stats == true         { count += 1; }
     if self.upload == true                  { count += 1; }
@@ -384,9 +384,9 @@ impl VtArgs {
     if self.imports == true                 { att_count += 1; }
     if self.exports == true                 { att_count += 1; }
     if self.tags == true                    { att_count += 1; }
-    if self.mitre_tactics  == true          { beh_count += 1; }
+    // if self.mitre_tactics  == true          { beh_count += 1; }
     if self.mitre_techniques  == true       { beh_count += 1; }
-    if self.ipt  == true                    { beh_count += 1; }
+    if self.ip  == true                     { beh_count += 1; }
     if self.http == true                    { beh_count += 1; }
 
     if self.structure_stats == true         {
@@ -619,7 +619,7 @@ impl Arguments {
         }
       }
 
-      if av.ipt == true {
+      if av.ip == true {
         if let Some(ip) = VirusTotal::get_ip_traffic(beh_att.clone()) {
           println!("{}\n{}", ip.title, ip.contents);
         }
@@ -631,9 +631,9 @@ impl Arguments {
         }
       }
 
-      if av.mitre_tactics == true {
-        todo!("Soon to be implemented");
-      }
+      // if av.mitre_tactics == true {
+      //   todo!("Soon to be implemented");
+      // }
 
       if av.mitre_techniques == true {
         if let Some(m) = VirusTotal::get_mitre_attack_techniques(beh_att.clone()) {

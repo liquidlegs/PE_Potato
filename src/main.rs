@@ -93,7 +93,8 @@ fn main() -> std::result::Result<(), GeneralError> {
     // Workout which subcommand was executed.
     match a {
       Action::VirusTotal(f) => {
-        
+        let c_f = f.clone();
+
         if let Some(h) = f.filename {
           filename.push_str(h.as_str());
           av_filename_exists = true;
@@ -113,6 +114,23 @@ fn main() -> std::result::Result<(), GeneralError> {
           );
           
           std::process::exit(0);
+        }
+
+        // Code block prevents users from providing -f or --vt-hash without suppliying arguments to display the data.
+        if av_filename_exists == true || av_hash_exists == true {
+          let flags = c_f.count_valid_flags();
+
+          if flags < 2 {
+            println!(
+              "\n{}: The {} or {} flags are must be supplied to query the Virus Total API, however, addtional flags must be supplied to display the data", 
+              style("Error").red().bright(), style("-f").cyan(), style("--vt-hash").cyan()
+            );
+
+            println!("{}: PE_Potato virus-total {} <{}> {} will display some basic properties, sections, resources and yara rules (if any)",
+            style("For example").yellow().bright(), style("--vt-hash").cyan(), style("hash").green().bright(), style("-g -s -r -y").cyan());
+
+            std::process::exit(0);
+          }
         }
       }
 

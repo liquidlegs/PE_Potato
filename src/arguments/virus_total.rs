@@ -558,15 +558,15 @@ impl VirusTotal {
           cells.push(Cell::from(format!("{e}")).fg(Color::Blue));
         }
 
-        else if e > 3.0 && e < 4.5 {
+        else if e >= 3.0 && e < 4.5 {
           cells.push(Cell::from(format!("{e}")).fg(Color::Green));
         }
     
-        else if e > 4.5 && e < 7.0 {
+        else if e >= 4.5 && e < 7.0 {
           cells.push(Cell::from(format!("{e}")).fg(Color::Yellow));
         }
     
-        else if e > 7.0 {
+        else if e >= 7.0 {
           cells.push(Cell::from(format!("{e}")).bg(Color::DarkRed).fg(Color::White));
         }
       }
@@ -1274,10 +1274,105 @@ impl VirusTotal {
    * Returns Option<CombinedTable>
    */
   #[allow(dead_code)]
-  pub fn get_registry_keys_set(_output_data: BehaviorJsonOutput) -> Option<Table> {
-    let table = Table::new();
+  pub fn get_registry_keys_set(_output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+    
+    title.add_row(Row::from(vec![
+      Cell::from("Registry Keys Set").fg(Color::Yellow)
+    ]));
+    
+    let mut table = Table::new();
+    table.set_header(Row::from(vec![
+      Cell::from("Key").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Value").bg(Color::DarkBlue).fg(Color::White),
+    ]));
+
+    // Place code below.....
   
-    Some(table)  
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)  
+  }
+
+
+  #[allow(dead_code)]
+  pub fn get_registry_keys_open(_output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+    
+    title.add_row(Row::from(vec![
+      Cell::from("Registry Keys Open").fg(Color::Yellow)
+    ]));
+    
+    let mut table = Table::new();
+    table.set_header(Row::from(vec![
+      Cell::from("Key").bg(Color::DarkBlue).fg(Color::White),
+    ]));
+
+    // Place code below.....
+  
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)  
+  }
+
+
+  #[allow(dead_code)]
+  pub fn get_dropped_files(_output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+    
+    title.add_row(Row::from(vec![
+      Cell::from("Dropped Files").fg(Color::Yellow)
+    ]));
+    
+    let mut table = Table::new();
+    table.set_header(Row::from(vec![
+      Cell::from("Path/Filename").bg(Color::DarkBlue).fg(Color::White),
+    ]));
+
+    // Place code below.....
+  
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)  
+  }
+
+
+  #[allow(dead_code)]
+  pub fn get_dns_requests(_output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut title = Table::new();
+
+    title.add_row(Row::from(vec![
+      Cell::from("DNS Requests").fg(Color::Yellow)
+    ]));
+
+    let mut table = Table::new();
+    table.set_header(Row::from(vec![
+      Cell::from("Method").fg(Color::White).bg(Color::DarkBlue),
+      Cell::from("Domain").fg(Color::White).bg(Color::DarkBlue),
+      Cell::from("Code").fg(Color::White).bg(Color::DarkBlue),
+    ]));
+
+    // Place code below.....
+
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)
   }
 
 
