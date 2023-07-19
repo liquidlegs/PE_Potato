@@ -390,6 +390,26 @@ pub struct VtArgs {
   #[clap(short, long, default_value_if("process_tree", Some("false"), Some("true")), min_values(0))]
   /// The process tree [TODO]
   pub process_tree: bool,
+
+  #[clap(long, default_value_if("files_opened", Some("false"), Some("true")), min_values(0))]
+  /// Displays files that were opened
+  pub files_opened: bool,
+  
+  #[clap(long, default_value_if("files_deleted", Some("false"), Some("true")), min_values(0))]
+  /// Displays files hat were deleted
+  pub files_deleted: bool,
+  
+  #[clap(long, default_value_if("files_written", Some("false"), Some("true")), min_values(0))]
+  /// Displays files that were written to the disk
+  pub files_written: bool,
+  
+  #[clap(long, default_value_if("files_changed", Some("false"), Some("true")), min_values(0))]
+  /// Displays files that has their attributes modified
+  pub files_changed: bool,
+
+  #[clap(long, default_value_if("reg_set", Some("false"), Some("true")), min_values(0))]
+  /// Displays files that were dropped on disk [TODO]
+  pub files_dropped: bool
 }
 
 impl VtArgs {
@@ -425,6 +445,11 @@ impl VtArgs {
     if self.dns == true                     { count += 1; }
     if self.reg_open == true                { count += 1; }
     if self.reg_set == true                 { count += 1; }
+    if self.files_changed == true           { count += 1; }
+    if self.files_deleted == true           { count += 1; }
+    if self.files_dropped == true           { count += 1; }
+    if self.files_opened == true            { count += 1; }
+    if self.files_written == true           { count += 1; }
     
     if let Some(_) = self.filename.clone() {
       count += 1;
@@ -454,18 +479,23 @@ impl VtArgs {
     if self.resource_details == true        { att_count += 1; }
     if self.resources_by_type == true       { att_count += 1; }
     if self.yara_rules == true              { att_count += 1; }
-    if self.sigma_rules == true             { att_count += 1; }
     if self.names == true                   { att_count += 1; }
     if self.compiler_products == true       { att_count += 1; }
     if self.imports == true                 { att_count += 1; }
     if self.exports == true                 { att_count += 1; }
     if self.tags == true                    { att_count += 1; }
+    if self.sigma_rules == true             { beh_count += 1; }
     if self.mitre_techniques  == true       { beh_count += 1; }
     if self.ip  == true                     { beh_count += 1; }
     if self.http == true                    { beh_count += 1; }
     if self.dns == true                     { beh_count += 1; }
     if self.reg_open == true                { beh_count += 1; }
     if self.reg_set == true                 { beh_count += 1; }
+    if self.files_changed == true           { beh_count += 1; }
+    if self.files_deleted == true           { beh_count += 1; }
+    if self.files_dropped == true           { beh_count += 1; }
+    if self.files_opened == true            { beh_count += 1; }
+    if self.files_written == true           { beh_count += 1; }
 
     if self.structure_stats == true         {
       att_count += 1;
@@ -671,7 +701,9 @@ impl Arguments {
       }
 
       if av.sigma_rules == true {
-        todo!("{}: This option is on the todo list!", style("Error").red().bright());
+        if let Some(t) = VirusTotal::get_sigma_rules(beh_att.clone()) {
+          display_table(t.title, t.contents);
+        }
       }
 
       if av.names == true {
@@ -723,8 +755,13 @@ impl Arguments {
       }
 
       if av.reg_open == true {
-        println!("reg open");
         if let Some(t) = VirusTotal::get_registry_keys_open(beh_att.clone()) {
+          display_table(t.title, t.contents);
+        }
+      }
+
+      if av.reg_set == true {
+        if let Some(t) = VirusTotal::get_registry_keys_set(beh_att.clone()) {
           display_table(t.title, t.contents);
         }
       }
@@ -737,6 +774,37 @@ impl Arguments {
 
       if av.structure_stats == true {
         if let Some(t) = VirusTotal::get_structure_stats(file_att.clone(), beh_att.clone()) {
+          display_table(t.title, t.contents);
+        }
+      }
+
+      if av.files_changed == true {
+        if let Some(t) = VirusTotal::get_files(beh_att.clone(), FileAction::Changed) {
+          display_table(t.title, t.contents);
+        }
+      }
+
+      if av.files_deleted == true {
+        if let Some(t) = VirusTotal::get_files(beh_att.clone(), FileAction::Deleted) {
+          display_table(t.title, t.contents);
+        }
+      }
+
+      if av.files_dropped == true {
+        todo!("Files dropped will be implemented in the next update")
+        // if let Some(t) = VirusTotal::get_files(beh_att.clone(), FileAction::) {
+        //   display_table(t.title, t.contents);
+        // }
+      }
+
+      if av.files_opened == true {
+        if let Some(t) = VirusTotal::get_files(beh_att.clone(), FileAction::Opened) {
+          display_table(t.title, t.contents);
+        }
+      }
+
+      if av.files_written == true {
+        if let Some(t) = VirusTotal::get_files(beh_att.clone(), FileAction::Written) {
           display_table(t.title, t.contents);
         }
       }

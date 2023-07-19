@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use super::vt_file_json::{Links, AlertContext, SigmaAnalysisResults};
+use super::vt_file_json::{Links, AlertContext};
 
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct BehaviorJsonOutput {
@@ -31,6 +31,7 @@ pub struct BehaviourAttributes {
   pub files_opened:                 Option<Vec<String>>,
   pub files_written:                Option<Vec<String>>,
   pub files_deleted:                Option<Vec<String>>,
+  pub files_dropped:                Option<Vec<DroppedFile>>,
   pub files_attribute_changed:      Option<Vec<String>>,
   pub has_html_report:              Option<bool>,
   pub has_evtx:                     Option<bool>,
@@ -73,6 +74,95 @@ pub struct BehaviourAttributes {
   pub ip_traffic:                   Option<Vec<IpTraffic>>,
   pub http_conversations:           Option<Vec<HttpConversations>>,
   pub dns_lookups:                  Option<Vec<DnsLookup>>,
+  pub sigma_analysis_results:       Option<Vec<SigmaAnalysisResults>>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct DroppedFile {
+  pub path:           Option<String>,
+  pub sha256:         Option<String>,
+  #[serde(rename = "type")]
+  pub _type:          Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct SigmaAnalysisResults {         // Type is Option<Vec<T>>
+  pub rule_title:               Option<String>,
+  pub rule_source:              Option<String>,
+  pub match_context:            Option<Vec<SigmaMatchContext>>,
+  pub rule_level:               Option<String>,
+  pub rule_description:         Option<String>,
+  pub rule_author:              Option<String>,
+  pub rule_id:                  Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct SigmaMatchContext {
+  pub values: Option<SigmaMatchContextValues>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct SigmaMatchContextValues {
+  #[serde(rename = "TerminalSessionId")]
+  pub terminal_session_id:        Option<String>,
+  #[serde(rename = "ProcessGuid")]
+  pub process_guid:               Option<String>,
+  #[serde(rename = "ProcessId")]
+  pub process_id:                 Option<String>,
+  #[serde(rename = "Product")]
+  pub product:                    Option<String>,
+  #[serde(rename = "Description")]
+  pub desription:                 Option<String>,
+  #[serde(rename = "Company")]
+  pub company:                    Option<String>,
+  #[serde(rename = "ParentProcessGuid")]
+  pub parent_process_guid:        Option<String>,
+  #[serde(rename = "User")]
+  pub user:                       Option<String>,
+  #[serde(rename = "Hashes")]
+  pub hashes:                     Option<String>,
+  #[serde(rename = "OriginalFileName")]
+  pub original_file_name:         Option<String>,
+  #[serde(rename = "ParentImage")]
+  pub parent_image:               Option<String>,
+  #[serde(rename = "FileVersion")]
+  pub file_version:               Option<String>,
+  #[serde(rename = "ParentProcessId")]
+  pub parent_process_id:          Option<String>,
+  #[serde(rename = "CurrentDirectory")]
+  pub current_directory:          Option<String>,
+  #[serde(rename = "CommandLine")]
+  pub command_line:               Option<String>,
+  #[serde(rename = "EventId")]
+  pub event_id:                   Option<String>,
+  #[serde(rename = "LoginGuid")]
+  pub login_guid:                 Option<String>,
+  #[serde(rename = "LoginId")]
+  pub login_id:                   Option<String>,
+  #[serde(rename = "Image")]
+  pub image:                      Option<String>,
+  #[serde(rename = "IntegrityLevel")]
+  pub integrity_level:            Option<String>,
+  #[serde(rename = "ParentCommandLine")]
+  pub parent_command_line:        Option<String>,
+  #[serde(rename = "UtcTime")]
+  pub utc_time:                   Option<String>,
+  #[serde(rename = "RuleName")]
+  pub rule_name:                  Option<String>,
+  #[serde(rename = "ScriptBlockId")]
+  pub script_block_id:            Option<String>,
+  #[serde(rename = "ScriptBlockText")]
+  pub script_block_text:          Option<String>,
+  #[serde(rename = "MessageNumber")]
+  pub message_number:             Option<String>,
+  #[serde(rename = "MessageTotal")]
+  pub message_total:              Option<String>,
+  #[serde(rename = "Path")]
+  pub path:                       Option<String>,
+  #[serde(rename = "LogonGuid")]
+  pub logon_guid:                  Option<String>,
+  #[serde(rename = "LogonId")]
+  pub logon_id:                    Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]

@@ -4,9 +4,19 @@ use reqwest::{blocking::multipart::{Form, Part}, header::{USER_AGENT, HOST, ACCE
 use super::{
   vt_file_json::*,
   ClientBuilder, Method, 
-  GeneralError, vt_behaviour_json::{BehaviorJsonOutput, IpTraffic, HttpConversations, MitreAttackTechniques, BehaviourData, DnsLookup},
+  GeneralError, vt_behaviour_json::{
+    BehaviorJsonOutput, IpTraffic, HttpConversations, MitreAttackTechniques, RegistryKeys, SigmaAnalysisResults, SigmaMatchContext
+  },
   CombinedTable, CTerm,
 };
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum FileAction {
+  Deleted,
+  Changed,
+  Opened,
+  Written,
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct VtArgType {
@@ -190,12 +200,12 @@ impl VirusTotal {
       rows.push(Self::get_preset_row("Last Submission Date", false));
     }
 
-    if let Some(_) = f_data.sigma_analysis_results           {
-      rows.push(Self::get_preset_row("Sigma Analysis Results", true));
-    }
-    else {
-      rows.push(Self::get_preset_row("Sigma Analysis Results", false));
-    }
+    // if let Some(_) = f_data.sigma_analysis_results           {
+    //   rows.push(Self::get_preset_row("Sigma Analysis Results", true));
+    // }
+    // else {
+    //   rows.push(Self::get_preset_row("Sigma Analysis Results", false));
+    // }
 
     if let Some(_) = f_data.meaningful_name                  {
       rows.push(Self::get_preset_row("Meaningful Name", true));
@@ -398,27 +408,6 @@ impl VirusTotal {
     out.title = title;
     out.contents = table;
     Some(out)
-  }
-
-
-  #[allow(dead_code)]
-  pub fn get_sigma_rules(output_data: FileJsonOutput) -> Option<Table> {
-    let table = Table::new();
-
-    let data = output_data.data?;
-    let sigma = data.attributes?.sigma_analysis_results?;
-
-    for i in sigma {
-      let mut _context = SigmaMatchContextValues::default();
-      
-      for idx in i.match_context? {
-        if let Some(v) = idx.values {
-          _context = v;
-        }
-      }
-    }
-
-    Some(table)
   }
 
   /**Function displayed detailed information about each resource in the file.
@@ -1283,7 +1272,7 @@ impl VirusTotal {
    * Returns Option<CombinedTable>
    */
   #[allow(dead_code)]
-  pub fn get_registry_keys_set(_output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+  pub fn get_registry_keys_set(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
     
@@ -1297,8 +1286,48 @@ impl VirusTotal {
       Cell::from("Value").bg(Color::DarkBlue).fg(Color::White),
     ]));
 
-    // Place code below.....
-  
+    let data = output_data.data?;
+    let mut d_keys: Vec<RegistryKeys> = Default::default();
+
+    for i in data {
+      let att = i.attributes?;
+      
+      if let Some(keys) = att.registry_keys_set {
+        for idx in keys {
+          d_keys.push(idx);
+        }
+      }
+    }
+
+    let mut rows: Vec<Row> = Default::default();
+    for i in d_keys {
+      let mut add_empty = false;
+
+      if let Some(k) = i.key {
+        rows.push(Row::from(vec![
+          Cell::from("Key").fg(Color::White), Cell::from(k).fg(Color::Green)
+        ]));
+
+        add_empty = true;
+      }
+
+      if let Some(v) = i.value {
+        rows.push(Row::from(vec![
+          Cell::from("Value").fg(Color::White), Cell::from(v).fg(Color::Yellow)
+        ]));
+        
+        add_empty = true;
+      }
+
+      if add_empty == true {
+        rows.push(Row::from(vec![
+          Cell::from("").bg(Color::DarkGrey)
+        ]));
+      }
+    }
+
+    rows.pop();
+    table.add_rows(rows);
     title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
     table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
 
@@ -1348,8 +1377,602 @@ impl VirusTotal {
   }
 
 
+  pub fn nth_row(colour: CTerm, counter: usize) -> Color {
+    match counter {
+      0 => {
+        if colour == CTerm::Fg {
+          return Color::White
+        }
+
+        else {
+          return Color::Reset
+        }
+      }
+
+      1 => {
+        if colour == CTerm::Bg {
+          return Color::DarkGrey;
+        }
+
+        else {
+          return Color::Reset;
+        }
+      }
+
+      _ => { return Color::White; }
+    }
+  }
+
+
+  /**Function creates a simple table with column
+   * Params:
+   *  name:     &str {The name of the table}
+   *  col_name: &str {The name of the column}
+   *  data:     &str {The data to be stored in the column}
+   * Returns Option<CombinedTable>
+   */
+  pub fn create_simple_table(name: &str, col_name: &str, data: Vec<String>) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut col_data = String::new();
+
+    let mut title = Table::new();
+    title.add_row(Row::from(vec![
+      Cell::from(name).fg(Color::Yellow)
+    ]));
+
+    let mut table = Table::new();
+    table.set_header(Row::from(vec![
+      Cell::from(col_name).bg(Color::DarkBlue).fg(Color::White)
+    ]));
+
+    if data.len() < 1 {
+      return None;
+    }
+
+    for i in data {
+      col_data.push_str(i.as_str());
+      col_data.push('\n');
+    }
+
+    col_data.pop();
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    
+    out.title = title;
+    out.contents = table;
+    Some(out)
+  }
+
+
+  /** */
   #[allow(dead_code)]
-  pub fn get_dropped_files(_output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+  pub fn get_sigma_rules(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    
+    let mut title = Table::new();
+    title.add_row(Row::from(vec![
+      Cell::from("Sigma Rules")
+      .fg(Color::Yellow)
+      .set_alignment(comfy_table::CellAlignment::Center)
+    ]));
+    
+    let mut table = Table::new();
+    table.set_header(Row::from(vec![
+      Cell::from("Key").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Value").bg(Color::DarkBlue).fg(Color::White)
+    ]));
+    
+    let data = output_data.data?;
+    let mut sigma_rules: Vec<SigmaAnalysisResults> = Default::default();
+    let mut rows: Vec<Row> = Default::default();
+
+    for i in data {
+      let att = i.attributes?;
+      
+      if let Some(rules) = att.sigma_analysis_results {
+        for idx in rules {
+          sigma_rules.push(idx);
+        }
+      }
+    }
+
+    let extract_sigma_context = |context: SigmaMatchContext| -> Vec<Row> {
+      let mut rows: Vec<Row> = Default::default();
+      let mut grey_counter: usize = 0;
+
+      if let Some(t) = context.values {
+
+        if let Some(t) = t.terminal_session_id {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Terminal Session ID").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Yellow),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.process_guid {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Process Guid").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Yellow),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.process_id {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Process ID").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Yellow),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.product {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Product").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Green),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.desription {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Description").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Green),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.company {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Company").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::DarkCyan),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.parent_process_guid {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Parent Process Guid").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Yellow),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.user {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("User").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Green),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.hashes {
+          let hashes: Vec<&str> = t.split(",").collect();
+          let mut hash_str = String::new();
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          for i in hashes {
+            hash_str.push_str(i);
+            hash_str.push('\n');
+          }
+          
+          hash_str.pop();
+
+          rows.push(Row::from(vec![
+            Cell::from("Hashes").bg(ln_bg).fg(ln_fg),
+            Cell::from(hash_str).fg(Color::DarkCyan),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.original_file_name {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Original File Name").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Cyan),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.parent_image {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Parent Image").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Cyan),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.file_version {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("File Version").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Yellow),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.parent_process_id {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Parent Process ID").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Yellow),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.current_directory {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Parent Directory").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Cyan),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.command_line {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Command Line").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Red),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.event_id {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Event ID").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Yellow),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.logon_guid {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Logon Guid").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Yellow),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.logon_id {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Logon ID").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Yellow),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.image {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Image").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Green),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.integrity_level {
+          let fg = Self::generate_alert_colour(CTerm::Fg, t.clone().as_str());
+          let bg = Self::generate_alert_colour(CTerm::Bg, t.clone().as_str());
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Integrity Level").bg(ln_bg).fg(ln_fg),
+            Cell::from(t.clone()).fg(fg).bg(bg)
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.parent_command_line {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Parent Command Line").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Cyan),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.utc_time {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("UTC Time").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::Magenta),
+          ]));
+          
+          grey_counter += 1;
+        }
+
+        if let Some(t) = t.rule_name {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+            Cell::from("Rule Name").bg(ln_bg).fg(ln_fg),
+            Cell::from(t).fg(Color::DarkCyan),
+          ]));
+        }
+      }
+
+      rows
+    };
+
+    let mut grey_counter: usize = 0;
+    for i in sigma_rules {
+      
+      if let Some(t) = i.rule_title {
+          let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+          let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+          rows.push(Row::from(vec![
+          Cell::from("Rule Title").bg(ln_bg).fg(ln_fg),
+          Cell::from(t).fg(Color::Green),
+        ]));
+
+        grey_counter += 1;
+      }
+
+      if let Some(t) = i.rule_level {
+        let fg = Self::generate_alert_colour(CTerm::Fg, t.clone().as_str());
+        let bg = Self::generate_alert_colour(CTerm::Bg, t.clone().as_str());
+        let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+        let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+        rows.push(Row::from(vec![
+          Cell::from("Rule Level").bg(ln_bg).fg(ln_fg),
+          Cell::from(t).fg(fg).bg(bg)
+        ]));
+        
+        grey_counter += 1;
+      }
+
+      if let Some(t) = i.rule_description {
+        let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+        let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+        rows.push(Row::from(vec![
+          Cell::from("Rule Description").bg(ln_bg).fg(ln_fg),
+          Cell::from(t).fg(Color::Green),
+        ]));
+        
+        grey_counter += 1;
+      }
+
+      if let Some(t) = i.rule_author {
+        let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+        let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+        rows.push(Row::from(vec![
+          Cell::from("Rule Author").bg(ln_bg).fg(ln_fg),
+          Cell::from(t).fg(Color::Cyan),
+        ]));
+        
+        grey_counter += 1;
+      }
+
+      if let Some(t) = i.rule_id {
+        let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+        let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+        rows.push(Row::from(vec![
+          Cell::from("Rule ID").bg(ln_bg).fg(ln_fg),
+          Cell::from(t).fg(Color::Yellow),
+        ]));
+        
+        grey_counter += 1;
+      }
+
+      if let Some(t) = i.rule_source {
+        let ln_fg = Self::nth_row(CTerm::Fg, grey_counter % 2);
+        let ln_bg = Self::nth_row(CTerm::Bg, grey_counter % 2);
+          
+        rows.push(Row::from(vec![
+          Cell::from("Rule Source").bg(ln_bg).fg(ln_fg),
+          Cell::from(t).fg(Color::DarkCyan),
+        ]));
+        
+        grey_counter += 1;
+      }
+
+      if let Some(_context) = i.match_context {
+        for idx in _context {
+          let sigma_rows = extract_sigma_context(idx);
+
+          if sigma_rows.len() > 0 {
+            for rws in sigma_rows {
+              rows.push(rws);
+            }
+          }
+        }
+      }
+
+      rows.push(Row::from(vec![
+        Cell::from("")
+      ]));
+    }
+
+    rows.pop();
+    table.add_rows(rows);
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)
+  }
+
+  #[allow(dead_code)]
+  pub fn get_files(output_data: BehaviorJsonOutput, action: FileAction) -> Option<CombinedTable> {
+    let mut out = CombinedTable::default();
+    let mut table_name = String::new();
+
+    let get_paths = |files: Vec<String>| -> String {
+      let mut out = String::new();
+      
+      for idx in files {
+        out.push_str(idx.as_str());
+        out.push('\n');
+      }
+
+      out.pop();
+      out
+    };
+
+    match action {
+      FileAction::Changed =>  { table_name.push_str("Files Changed") }
+      FileAction::Opened =>   { table_name.push_str("Files Opened") }
+      FileAction::Deleted =>  { table_name.push_str("Files Deleted") }
+      FileAction::Written =>  { table_name.push_str("Files Written") }
+    }
+
+    let data = output_data.data?;
+    let mut files = String::new();
+
+    for i in data {
+      let att = i.attributes?;
+
+      if action == FileAction::Opened {
+        if let Some(t) = att.files_opened {
+          let paths = get_paths(t);
+
+          files.push_str(paths.as_str());
+        }
+      }
+
+      else if action == FileAction::Deleted {
+        if let Some(t) = att.files_deleted {
+          let paths = get_paths(t);
+
+          files.push_str(paths.as_str());
+        }
+      }
+
+      else if action == FileAction::Changed {
+        if let Some(t) = att.files_attribute_changed {
+          let paths = get_paths(t);
+          
+          files.push_str(paths.as_str());
+        }
+      }
+
+      else if action == FileAction::Written {
+        if let Some(t) = att.files_written {
+          let paths = get_paths(t);
+          
+          files.push_str(paths.as_str());
+        }
+      }
+    }
+    
+    files.pop();
+
+    let mut title = Table::new();
+    title.add_row(Row::from(vec![
+      Cell::from(table_name).fg(Color::Yellow).set_alignment(comfy_table::CellAlignment::Center)
+    ]));
+
+    let mut table = Table::new();
+    table.set_header(Row::from(vec![
+      Cell::from("Path").bg(Color::DarkBlue).fg(Color::White)
+    ]));
+
+    if files.len() > 0 {
+      table.add_row(Row::from(vec![
+        Cell::from(files).fg(Color::Green)
+      ]));
+    }
+
+    title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+
+    out.title = title;
+    out.contents = table;
+    Some(out)
+  }
+
+
+  #[allow(dead_code)]
+  pub fn get_command_executions(_output_data: BehaviorJsonOutput) -> () {
+    
+  }
+
+
+  #[allow(dead_code)]
+  pub fn get_dropped_files(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
     
@@ -1359,9 +1982,20 @@ impl VirusTotal {
     
     let mut table = Table::new();
     table.set_header(Row::from(vec![
-      Cell::from("Path/Filename").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Key").bg(Color::DarkBlue).fg(Color::White),
+      Cell::from("Value").bg(Color::DarkBlue).fg(Color::White),
     ]));
 
+    // Path
+    // Sha256
+    // Type
+
+    let data = output_data.data?;
+    for i in data {
+      let _att = i.attributes?;
+
+      // Files dropped havent been defined in vt_json...
+    }
     // Place code below.....
   
     title.set_content_arrangement(ContentArrangement::DynamicFullWidth);
@@ -1373,7 +2007,7 @@ impl VirusTotal {
   }
 
 
-  #[allow(dead_code)]
+  /** */
   pub fn get_dns_requests(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
@@ -1445,6 +2079,7 @@ impl VirusTotal {
   }
 
 
+  /** */
   pub fn generate_alert_colour(colour: CTerm, keyword: &str) -> Color {
     match keyword.to_lowercase().as_str() {
       

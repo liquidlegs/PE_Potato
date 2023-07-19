@@ -63,82 +63,6 @@ pub mod elf {
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
-pub struct SigmaAnalysisResults {         // Type is Option<Vec<T>>
-  pub rule_title:               Option<String>,
-  pub rule_source:              Option<String>,
-  pub match_context:            Option<Vec<SigmaMatchContext>>,
-  pub rule_level:               Option<String>,
-  pub rule_description:         Option<String>,
-  pub rule_author:              Option<String>,
-  pub rule_id:                  Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize, Default)]
-pub struct SigmaMatchContext {
-  pub values: Option<SigmaMatchContextValues>,
-}
-
-#[derive(Debug, Clone, Deserialize, Default)]
-pub struct SigmaMatchContextValues {
-  #[serde(rename = "TerminalSessionId")]
-  pub terminal_session_id:        Option<String>,
-  #[serde(rename = "ProcessGuid")]
-  pub process_guid:               Option<String>,
-  #[serde(rename = "ProcessId")]
-  pub process_id:                 Option<String>,
-  #[serde(rename = "Product")]
-  pub product:                    Option<String>,
-  #[serde(rename = "Description")]
-  pub desription:                 Option<String>,
-  #[serde(rename = "Company")]
-  pub company:                    Option<String>,
-  #[serde(rename = "ParentProcessGuid")]
-  pub parent_process_guid:        Option<String>,
-  #[serde(rename = "User")]
-  pub user:                       Option<String>,
-  #[serde(rename = "Hashes")]
-  pub hashes:                     Option<String>,
-  #[serde(rename = "OriginalFileName")]
-  pub original_file_name:         Option<String>,
-  #[serde(rename = "ParentImage")]
-  pub parent_image:               Option<String>,
-  #[serde(rename = "FileVersion")]
-  pub file_version:               Option<String>,
-  #[serde(rename = "ParentProcessId")]
-  pub parent_process_id:          Option<String>,
-  #[serde(rename = "CurrentDirectory")]
-  pub current_directory:          Option<String>,
-  #[serde(rename = "CommandLine")]
-  pub command_line:               Option<String>,
-  #[serde(rename = "EventId")]
-  pub event_id:                   Option<String>,
-  #[serde(rename = "LoginGuid")]
-  pub login_guid:                 Option<String>,
-  #[serde(rename = "LoginId")]
-  pub login_id:                   Option<String>,
-  #[serde(rename = "Image")]
-  pub image:                      Option<String>,
-  #[serde(rename = "IntegrityLevel")]
-  pub integrity_level:            Option<String>,
-  #[serde(rename = "ParentCommandLine")]
-  pub parent_command_line:        Option<String>,
-  #[serde(rename = "UtcTime")]
-  pub utc_time:                   Option<String>,
-  #[serde(rename = "RuleName")]
-  pub rule_name:                  Option<String>,
-  #[serde(rename = "ScriptBlockId")]
-  pub script_block_id:            Option<String>,
-  #[serde(rename = "ScriptBlockText")]
-  pub script_block_text:          Option<String>,
-  #[serde(rename = "MessageNumber")]
-  pub message_number:             Option<String>,
-  #[serde(rename = "MessageTotal")]
-  pub message_total:              Option<String>,
-  #[serde(rename = "Path")]
-  pub path:                       Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize, Default)]
 #[allow(dead_code)]
 pub struct FileJsonOutput {
   pub data: Option<FileData>,
@@ -252,7 +176,6 @@ pub struct FileAttributes {
   pub authentihash:                   Option<String>,
   pub detectiteasy:                   Option<DetectItEasy>,
   pub last_submission_date:           Option<usize>,
-  pub sigma_analysis_results:         Option<Vec<SigmaAnalysisResults>>,
   pub meaningful_name:                Option<String>,
   pub crowdsourced_ids_stats:         Option<CrowdSrcStats>,
   pub sandbox_verdicts:               Option<SandboxVerdict>,
