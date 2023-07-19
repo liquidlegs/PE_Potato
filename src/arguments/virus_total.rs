@@ -1,6 +1,7 @@
 use console::style;
 use comfy_table::{Table, Cell, Row, Color, ContentArrangement};
 use reqwest::{blocking::multipart::{Form, Part}, header::{USER_AGENT, HOST, ACCEPT, CONTENT_LENGTH}};
+use serde::Deserialize;
 use super::{
   vt_file_json::*,
   ClientBuilder, Method, 
@@ -16,6 +17,17 @@ pub enum FileAction {
   Changed,
   Opened,
   Written,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct VtErrors {
+  pub error: VhttpError,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct VhttpError {
+  pub message: String,
+  pub code: String,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -585,10 +597,30 @@ impl VirusTotal {
     Some(out)
   }
 
+
+  pub fn handle_api_error(response: String) -> () {
+    if let Ok(s) = serde_json::from_str::<VtErrors>(&response.clone()) {
+      let msg = s.error.message;
+      let code = s.error.code;
+
+      println!(
+        "{}: ({}) {} - {}", style("Error").red().bright(), 
+        style("Virus Total").blue().bright(), style(msg).yellow(), style(code).cyan()
+      );
+
+      std::process::exit(0);
+    }
+  }
+
+
   pub fn parse_response(raw_json: bool, response: String) -> FileJsonOutput {
     if raw_json == true {
       println!("{response}");
       std::process::exit(0);
+    }
+
+    if response.len() <= 500 {
+      Self::handle_api_error(response.clone());
     }
     
     // Deserialize the json object in another thread.
@@ -628,6 +660,10 @@ impl VirusTotal {
     if raw_json == true {
       println!("{response}");
       std::process::exit(0);
+    }
+
+    if response.len() <= 500 {
+      Self::handle_api_error(response.clone());
     }
     
     // Deserialize the json object in another thread.
@@ -2300,17 +2336,17 @@ impl VirusTotal {
    *  apikey:   &str  {The users api key}
    * Returns String
    */
-  pub fn query_file_attributes(hash_id: &str, apikey: &str) -> String {
+  pub fn query_file_attributes(hash_id: &str, apikey: &str) -> std::result::Result<String, GeneralError> {
     let base_url = format!("https://www.virustotal.com/api/v3/files/{hash_id}");
   
     let builder = ClientBuilder::new()
                                   .build().unwrap().request(Method::GET, base_url)
                                   .header("x-apikey", apikey);
     
-    let request = builder.send().unwrap();
-    let text = request.text().unwrap();
+    let request = builder.send()?;
+    let text = request.text()?;
 
-    text
+    Ok(text)
   }
 
   /**Function queries the virus total api for file behaviour and returns a json response.

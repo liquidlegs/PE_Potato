@@ -52,13 +52,15 @@ pub const DF_CONFIG_D: &str = "{\n  \"vt_enable_search\": false,\n  \"vt_api_key
 
 #[derive(Debug, Clone, Default)]
 pub struct CmdSettings {
-  pub vt_api_key:         String,
-  pub vt_enable_search:   bool,
-  pub mb_enable_search:   bool,
-  pub mb_enable_download: bool,
-  pub mb_api_key:         String,
-  pub file_hash:          String,
-  pub file_bytes:         Vec<u8>,
+  pub vt_api_key:                 String,
+  pub mb_api_key:                 String,
+  pub yr_api_key:                 String,
+  pub tf_api_key:                 String,
+  pub fio_api_key:                String,
+  pub filescanio_enable_download: bool,
+  pub mb_enable_download:         bool,
+  pub file_hash:                  String,
+  pub file_bytes:                 Vec<u8>,
 }
 
 impl CmdSettings {
@@ -66,8 +68,10 @@ impl CmdSettings {
     Self {
       vt_api_key: String::new(),
       mb_api_key: String::new(),
-      vt_enable_search: false,
-      mb_enable_search: false,
+      yr_api_key: String::new(),
+      tf_api_key: String::new(),
+      fio_api_key: String::new(),
+      filescanio_enable_download: false,
       mb_enable_download: false,
       file_hash: file_hash,
       file_bytes: file_bytes,
@@ -83,11 +87,13 @@ pub struct CombinedTable {
 
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct CmdSettingsJson {
-  pub vt_api_key:   Option<String>,
-  pub vt_enable_search:    Option<bool>,
-  pub mb_enable_search:    Option<bool>,
-  pub mb_enable_download:  Option<bool>,
-  pub mb_api_key:   Option<String>,
+  pub vt_api_key:                   Option<String>,
+  pub mb_api_key:                   Option<String>,
+  pub yr_api_key:                   Option<String>,
+  pub tf_api_key:                   Option<String>,
+  pub fio_api_key:                  Option<String>,
+  pub filescanio_enable_download:   Option<bool>,
+  pub mb_enable_download:           Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -120,6 +126,9 @@ pub enum Action {
   
   /// Query the ThreatFox API. [Not Implemented]
   ThreatFox(TfArgs),
+
+  /// Query the FilescanIO API [Not Implemented]
+  FileScanIO(FscanArgs),
 }
 
 #[derive(Debug, Clone, Default, clap::ValueEnum, PartialEq)]
@@ -152,6 +161,10 @@ impl YrArgs {}
 #[derive(Debug, Clone, Default, Args)]
 pub struct TfArgs {}
 impl TfArgs {}
+
+#[derive(Debug, Clone, Default, Args)]
+pub struct FscanArgs {}
+impl FscanArgs {}
 
 #[derive(Args, Debug, Clone, Default)]
 pub struct MbArgs {
@@ -589,13 +602,13 @@ impl Arguments {
     // Get the apu key from the config file.
     Self::load_config_file(settings)?;
 
-    if settings.vt_enable_search.clone() == false {
-      return Err(GeneralError::Config {
-        src: std::io::Error::new(
-          std::io::ErrorKind::Other, "Virus Total search must be enabled in the config file"
-        )
-      });
-    }
+    // if settings.vt_enable_search.clone() == false {
+    //   return Err(GeneralError::Config {
+    //     src: std::io::Error::new(
+    //       std::io::ErrorKind::Other, "Virus Total search must be enabled in the config file"
+    //     )
+    //   });
+    // }
 
     if settings.vt_api_key.clone().len() < 1 {
       return Err(GeneralError::Config {
@@ -640,7 +653,6 @@ impl Arguments {
       let mut file_request = String::new();
       let mut behaviour_request = String::new();
       let mut file_att = FileJsonOutput::default();
-      // let mut file_att_test = FileJsonOutput::default();
       let mut beh_att = BehaviorJsonOutput::default();
       let arg_types = av.check_arg_types()?;
       let _file_bytes = settings.file_bytes.clone();
@@ -655,12 +667,16 @@ impl Arguments {
       };
 
       if arg_types.attributes == true {
-        file_request.push_str(VirusTotal::query_file_attributes(&settings.file_hash, &settings.vt_api_key).as_str());
+        let req = VirusTotal::query_file_attributes(&settings.file_hash, &settings.vt_api_key)?;
+        
+        file_request.push_str(req.as_str());
         file_att = VirusTotal::parse_response(raw_json, file_request.clone());
       }
 
       if arg_types.behaviour == true {
-        behaviour_request.push_str(VirusTotal::query_file_behaviour(&settings.file_hash, 10, &settings.vt_api_key)?.as_str());
+        let req = VirusTotal::query_file_behaviour(&settings.file_hash, 10, &settings.vt_api_key)?;
+        
+        behaviour_request.push_str(req.as_str());
         beh_att = VirusTotal::parse_behavior_response(raw_json, behaviour_request);
       }
 
@@ -1766,11 +1782,16 @@ impl Arguments {
       else if vt_api.len() >= 32 {
         settings.vt_api_key.push_str(vt_api.as_str());
       }
+
+      else {
+        println!("{}: Virus Total API key is invalid", style("Error").red().bright());
+        std::process::exit(0);
+      }
     }
 
-    if let Some(vt_enable_search) = json_object.vt_enable_search.clone() {
-      settings.vt_enable_search = vt_enable_search;
-    }
+    // if let Some(vt_enable_search) = json_object.vt_enable_search.clone() {
+    //   settings.vt_enable_search = vt_enable_search;
+    // }
 
     if let Some(mb_api) = json_object.mb_api_key.clone() {
       if let Some(s) = get_env(mb_api.clone()) {
@@ -1784,9 +1805,9 @@ impl Arguments {
       settings.mb_enable_download = mb_enable_download;
     }
 
-    if let Some(mb_enable_search) = json_object.mb_enable_search.clone() {
-      settings.mb_enable_search = mb_enable_search;
-    }
+    // if let Some(mb_enable_search) = json_object.mb_enable_search.clone() {
+    //   settings.mb_enable_search = mb_enable_search;
+    // }
 
     Ok(())
   }
