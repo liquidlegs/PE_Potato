@@ -53,6 +53,15 @@ Using the Virus Total client, users can create queries about malicious files by 
   - IP Traffic
   - Contained Resources
   - Contained Resources By Type
+  - Registry Keys Opened
+  - Registry Keys Set
+  - Files Written
+  - Files Opened
+  - Files Changed
+  - Files Deleted
+  - Mitre Attack TTP's
+  - DNS lookups
+  - Sigma Rules
 - Query Virus Total via:
   - Generated Hash
   - Manually Entered Hash
@@ -66,7 +75,6 @@ Using the Virus Total client, users can create queries about malicious files by 
 - Display raw Malware Bazaar json responses
 
 ## Planned features
-- A modern GUI
 - Elf parsing support
 - View strings
 - View debug info
@@ -77,12 +85,14 @@ Using the Virus Total client, users can create queries about malicious files by 
   - History
   - Pe Header
   - Contained Resources By Language
-  - Mitre Attack TTP's
-  - DNS lookups
-  - Sigma Rules
-  - Written and dropped files
-  - Set registry keys
+  - Dropped Files
   - Process Tree
+  - Processes Created
+  - Mutex Creations
+  - Services Created
+  - Files Copied
+  - System Property Lookups
+  - Command Executions
   - Other malicious payload information
 - Upload samples to Virus Total
 - Malware Bazaar:
@@ -102,11 +112,13 @@ There is a bug in the Malware Bazaar API by abuse.ch that allows users to query 
 Example configuration:
 ```json
 {
-  "vt_enable_search": true,
-  "vt_api_key": "$MY_VIRUS_TOTAL_API_KEY",
-  "mb_enable_search": true,
-  "mb_enable_download": false,
-  "mb_api_key": "$MALWARE_BAZAAR_API_KEY"
+  "mb_enable_download":         false,
+  "filescanio_enable_download": false,
+  "vt_api_key":                 "$VT_KEY",
+  "mb_api_key":                 "$MW_BZR_KEY",
+  "tf_api_key":                 "$THREAT_FOX_API_KEY",
+  "yr_api_key":                 "$YARAIFY_API_KEY",
+  "filescanio_api_key":         "$FILESCAN_IO_API_KEY"
 }
 ```
 
