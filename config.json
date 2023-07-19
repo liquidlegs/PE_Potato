@@ -1,7 +1,9 @@
 {
-  "vt_enable_search": false,
-  "vt_api_key": "$VRS_TTL_KEY",
-  "mb_enable_search": false,
   "mb_enable_download": false,
-  "mb_api_key": "$MW_BZR_KEY"
+  "filescanio_enable_download": false,
+  "vt_api_key": "$VT_KEY",
+  "mb_api_key": "$MW_BZR_KEY",
+  "tf_api_key": "$THREAT_FOX_API_KEY",
+  "yr_api_key": "$YARAIFY_API_KEY",
+  "filescanio_api_key": "$FILESCAN_IO_API_KEY"
 }
