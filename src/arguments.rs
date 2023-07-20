@@ -5,6 +5,8 @@ mod function_backlist;
 use function_backlist::*;
 mod malware_bazaar;
 use malware_bazaar::*;
+mod filescanio;
+use filescanio::*;
 
 use clap::{Parser, Args};
 use console::style;
@@ -36,6 +38,7 @@ use self::vt_file_json::FileJsonOutput;
 mod vt_file_json;
 mod vt_behaviour_json;
 mod mb_file_json;
+mod filescanio_json;
 
 custom_error! {pub GeneralError
   VtFlag{flag: std::io::Error}                = "Unable to parse flag - {flag}",
