@@ -66,7 +66,7 @@ impl VirusTotal {
   }
 
   #[allow(dead_code, unused_assignments)]
-  pub fn get_structure_stats(file_data: FileJsonOutput, behaviour_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+  pub fn get_structure_stats(file_data: Box<FileJsonOutput>, behaviour_data: Box<BehaviorJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -427,7 +427,7 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The parsed json response}
    * Returns Option<CombinedTable>
    */
-  pub fn get_resource_details(output_data: FileJsonOutput) -> Option<CombinedTable> {
+  pub fn get_resource_details(output_data: Box<FileJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -516,7 +516,7 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The parsed json response}
    * Returns Option<CombinedTable>
    */
-  pub fn get_sections(output_data: FileJsonOutput) -> Option<CombinedTable> {
+  pub fn get_sections(output_data: Box<FileJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -613,7 +613,7 @@ impl VirusTotal {
   }
 
 
-  pub fn parse_response(raw_json: bool, response: String) -> FileJsonOutput {
+  pub fn parse_response(raw_json: bool, response: String) -> Box<FileJsonOutput> {
     if raw_json == true {
       println!("{response}");
       std::process::exit(0);
@@ -624,9 +624,9 @@ impl VirusTotal {
     }
     
     // Deserialize the json object in another thread.
-    let (tx, rx) = std::sync::mpsc::channel::<FileJsonOutput>();
+    let (tx, rx) = std::sync::mpsc::channel::<Box<FileJsonOutput>>();
     std::thread::spawn(Box::new(move || {
-      match serde_json::from_str::<FileJsonOutput>(&response) {
+      match serde_json::from_str::<Box<FileJsonOutput>>(&response) {
         Ok(s) => {
 
           // Send the results back to the main thread.
@@ -644,7 +644,7 @@ impl VirusTotal {
     }));
 
     // Receives the data.
-    let mut output_data = FileJsonOutput::default();
+    let mut output_data = Box::new(FileJsonOutput::default());
     match rx.recv() {
       Ok(s) => {
         output_data = s;
@@ -656,7 +656,7 @@ impl VirusTotal {
   }
 
   
-  pub fn parse_behavior_response(raw_json: bool, response: String) -> BehaviorJsonOutput {
+  pub fn parse_behavior_response(raw_json: bool, response: String) -> Box<BehaviorJsonOutput> {
     if raw_json == true {
       println!("{response}");
       std::process::exit(0);
@@ -667,9 +667,9 @@ impl VirusTotal {
     }
     
     // Deserialize the json object in another thread.
-    let (tx, rx) = std::sync::mpsc::channel::<BehaviorJsonOutput>();
+    let (tx, rx) = std::sync::mpsc::channel::<Box<BehaviorJsonOutput>>();
     std::thread::spawn(Box::new(move || {
-      match serde_json::from_str::<BehaviorJsonOutput>(&response) {
+      match serde_json::from_str::<Box<BehaviorJsonOutput>>(&response) {
         Ok(s) => {
 
           // Send the results back to the main thread.
@@ -687,7 +687,7 @@ impl VirusTotal {
     }));
 
     // Receives the data.
-    let mut output_data = BehaviorJsonOutput::default();
+    let mut output_data = Box::new(BehaviorJsonOutput::default());
     match rx.recv() {
       Ok(s) => {
         output_data = s;
@@ -703,7 +703,7 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The parsed json response}
    * Returns Option<CombinedTable>
    */
-  pub fn get_general_info(output_data: FileJsonOutput) -> Option<CombinedTable> {
+  pub fn get_general_info(output_data: Box<FileJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -921,7 +921,7 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The json repsonse from virus total api}
    * Returns Option<CombinedTable>
    */
-  pub fn get_compiler_products(output_data: FileJsonOutput) -> Option<CombinedTable> {
+  pub fn get_compiler_products(output_data: Box<FileJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -984,7 +984,7 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The virus total api response}
    * Returns Option<CombinedTable>
    */
-  pub fn get_file_names(output_data: FileJsonOutput) -> Option<CombinedTable> {
+  pub fn get_file_names(output_data: Box<FileJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -1023,7 +1023,7 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The virus total api response}
    * Returns Option<CombinedTable>
    */
-  pub fn get_tags(output_data: FileJsonOutput) -> Option<CombinedTable> {
+  pub fn get_tags(output_data: Box<FileJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -1063,7 +1063,7 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The virus total api response}
    * Returns Option<CombinedTable>
    */
-  pub fn get_resource_by_type(output_data: FileJsonOutput) -> Option<CombinedTable> {
+  pub fn get_resource_by_type(output_data: Box<FileJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -1163,10 +1163,10 @@ impl VirusTotal {
 
   /**Function displays ip traffic from the virus total api response in regards to a file hash.
    * Params:
-   *  output_data: BehaviorJsonOutput {The virus total api file behavior response}
+   *  output_data: Box<BehaviorJsonOutput> {The virus total api file behavior response}
    * Returns Option<CombinedTable>
    */
-  pub fn get_ip_traffic(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+  pub fn get_ip_traffic(output_data: Box<BehaviorJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -1222,10 +1222,10 @@ impl VirusTotal {
 
   /**Function displays http coversations from the virus total api response in regards to a file hash.
    * Params:
-   *  output_data: BehaviorJsonOutput {The virus total api file behavior response}
+   *  output_data: Box<BehaviorJsonOutput> {The virus total api file behavior response}
    * Returns Option<CombinedTable>
    */
-  pub fn get_http_conv(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+  pub fn get_http_conv(output_data: Box<BehaviorJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -1308,7 +1308,7 @@ impl VirusTotal {
    * Returns Option<CombinedTable>
    */
   #[allow(dead_code)]
-  pub fn get_registry_keys_set(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+  pub fn get_registry_keys_set(output_data: Box<BehaviorJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
     
@@ -1374,7 +1374,7 @@ impl VirusTotal {
 
 
   #[allow(dead_code)]
-  pub fn get_registry_keys_open(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+  pub fn get_registry_keys_open(output_data: Box<BehaviorJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
     
@@ -1482,7 +1482,7 @@ impl VirusTotal {
 
   /** */
   #[allow(dead_code)]
-  pub fn get_sigma_rules(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+  pub fn get_sigma_rules(output_data: Box<BehaviorJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     
     let mut title = Table::new();
@@ -1912,7 +1912,7 @@ impl VirusTotal {
   }
 
   #[allow(dead_code)]
-  pub fn get_files(output_data: BehaviorJsonOutput, action: FileAction) -> Option<CombinedTable> {
+  pub fn get_files(output_data: Box<BehaviorJsonOutput>, action: FileAction) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut table_name = String::new();
 
@@ -2002,13 +2002,13 @@ impl VirusTotal {
 
 
   #[allow(dead_code)]
-  pub fn get_command_executions(_output_data: BehaviorJsonOutput) -> () {
+  pub fn get_command_executions(_output_data: Box<BehaviorJsonOutput>) -> () {
     
   }
 
 
   #[allow(dead_code)]
-  pub fn get_dropped_files(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+  pub fn get_dropped_files(output_data: Box<BehaviorJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
     
@@ -2044,7 +2044,7 @@ impl VirusTotal {
 
 
   /** */
-  pub fn get_dns_requests(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+  pub fn get_dns_requests(output_data: Box<BehaviorJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -2170,10 +2170,10 @@ impl VirusTotal {
   /**Function displays mitre attack techniques and sub techniques from the virus total 
    * api response in regards to a file hash.
    * Params:
-   *  output_data: BehaviorJsonOutput {The virus total api file behavior response}
+   *  output_data: Box<BehaviorJsonOutput> {The virus total api file behavior response}
    * Returns Option<CombinedTable>
    */
-  pub fn get_mitre_attack_techniques(output_data: BehaviorJsonOutput) -> Option<CombinedTable> {
+  pub fn get_mitre_attack_techniques(output_data: Box<BehaviorJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -2244,7 +2244,7 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The virus total api response}
    * Returns Option<CombinedTable>
    */
-  pub fn get_imports(output_data: FileJsonOutput) -> Option<CombinedTable> {
+  pub fn get_imports(output_data: Box<FileJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -2295,7 +2295,7 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The virus total api response}
    * Returns Option<CombinedTable>
    */
-  pub fn get_exports(output_data: FileJsonOutput) -> Option<CombinedTable> {
+  pub fn get_exports(output_data: Box<FileJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -2477,7 +2477,7 @@ impl VirusTotal {
    *  output_data: FileJsonOutput {The virus total api response}
    * Returns Option<Table>
    */
-  pub fn get_yara_rules(output_data: FileJsonOutput) -> Option<CombinedTable> {
+  pub fn get_yara_rules(output_data: Box<FileJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
@@ -2569,7 +2569,7 @@ impl VirusTotal {
    *  apikey: &str  {The Virus Total api key}
    * Returns nothing
    */
-  pub fn search_detections(output_data: FileJsonOutput) -> Option<CombinedTable> {
+  pub fn search_detections(output_data: Box<FileJsonOutput>) -> Option<CombinedTable> {
     let mut out = CombinedTable::default();
     let mut title = Table::new();
 
