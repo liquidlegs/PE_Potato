@@ -19,8 +19,7 @@ clap = { version = "3.2.22", features = ["derive"] }
 comfy-table = "6.1.4"
 console = "0.15.5"
 custom_error = "1.9.2"
-# exe = { version = "0.5.6", features = ["winapi", "win32"] }
-# goblin = "0.6.0"
+goblin = "0.6.0"
 # html_parser = "0.7.0"
 # md5 = "0.7.0"
 reqwest = { version = "0.11.14", features = ["blocking", "multipart"] }

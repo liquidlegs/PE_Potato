@@ -1,4 +1,4 @@
-/* 
+// /* 
 use comfy_table::{Table, Cell, Row, Color};
 use console::style;
 
@@ -517,4 +517,4 @@ use super::{
 
     table
   }
-*/
+// */

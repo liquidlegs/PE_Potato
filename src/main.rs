@@ -10,7 +10,7 @@ use sha256::try_digest;
 enum AppState {
   AvSearch,
   MbSearch,
-  // BinSearch,
+  BinSearch,
   Waiting,
 }
 
@@ -135,15 +135,15 @@ fn main() -> std::result::Result<(), GeneralError> {
         }
       }
 
-      // Action::Bin(b) => {
-      //   filename.clear();
-      //   filename.push_str(b.filename.clone().as_str());
-      //   state = AppState::BinSearch;
+      Action::Bin(b) => {
+        filename.clear();
+        filename.push_str(b.filename.clone().as_str());
+        state = AppState::BinSearch;
 
-      //   if b.debug.clone() == true {
-      //     bin_debug = true;
-      //   }
-      // }
+        if b.debug.clone() == true {
+          bin_debug = true;
+        }
+      }
 
       Action::MalwareBazaar(_) => {
         state = AppState::MbSearch;
@@ -171,27 +171,27 @@ fn main() -> std::result::Result<(), GeneralError> {
   }
 
   // Local pe parsing with execute this branch.
-  // else if state == AppState::BinSearch {
+  else if state == AppState::BinSearch {
 
-  //   if bin_debug == true {
-  //     println!("{}: filepath: {}", style("Debug =>").red().bright(), style(filename.clone()).cyan());
-  //   }
+    if bin_debug == true {
+      println!("{}: filepath: {}", style("Debug =>").red().bright(), style(filename.clone()).cyan());
+    }
 
-  //   let path = Path::new(&filename);
-  //   let hash = try_digest(path)?;
+    let path = Path::new(&filename);
+    let hash = try_digest(path)?;
     
-  //   let mut settings = CmdSettings::new(hash, Default::default());
-  //   let bytes = std::fs::read(path)?;
+    let mut settings = CmdSettings::new(hash, Default::default());
+    let bytes = std::fs::read(path)?;
     
-  //   if cmdline.len() == 3 {
-  //     println!("Showing everything");
-  //     args.display_data(bytes, &mut settings, true)?;
-  //   }
+    if cmdline.len() == 3 {
+      println!("Showing everything");
+      args.display_data(bytes, &mut settings, true)?;
+    }
 
-  //   else if cmdline.len() > 3 {
-  //     args.display_data(bytes, &mut settings, false)?;
-  //   }
-  // }
+    else if cmdline.len() > 3 {
+      args.display_data(bytes, &mut settings, false)?;
+    }
+  }
 
   Ok(())
 }

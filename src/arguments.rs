@@ -1,13 +1,13 @@
-// use local_parse::*;
-// use goblin::Object;
-// use goblin::pe::data_directories::DataDirectories;
-// use goblin::pe::header::{DosHeader, CoffHeader};
-// use goblin::pe::optional_header::OptionalHeader;
-// use goblin::pe::section_table::SectionTable;
-// use goblin::pe::{
-//   export::Export,
-//   import::Import,
-// };
+use local_parse::*;
+use goblin::Object;
+use goblin::pe::data_directories::DataDirectories;
+use goblin::pe::header::{DosHeader, CoffHeader};
+use goblin::pe::optional_header::OptionalHeader;
+use goblin::pe::section_table::SectionTable;
+use goblin::pe::{
+  export::Export,
+  import::Import,
+};
 
 mod virus_total;
 use serde::Deserialize;
@@ -46,7 +46,7 @@ custom_error! {pub GeneralError
   Config{src: std::io::Error}                 = "Config file error - {src}",
   Io{source: std::io::Error}                  = "Unable to read file - {source}",
   Request{source: reqwest::Error}             = "Unable to make request - {source}",
-  // Goblin{source: goblin::error::Error}        = "Unable to parse binary - {source}",
+  Goblin{source: goblin::error::Error}        = "Unable to parse binary - {source}",
 }
 
 pub const CONFIG_JSON: &str = "config.json";
@@ -112,8 +112,8 @@ pub struct Arguments {
 
 #[derive(clap::Subcommand, Debug, Clone)]
 pub enum Action {
-  // /// Parse local PE files similar to PEstudio and CFF Explorer
-  // Bin(BinArgs),
+  /// Parse local PE files similar to PEstudio and CFF Explorer
+  Bin(BinArgs),
   
   /// Query the Virus Total API.
   VirusTotal(VtArgs),
@@ -946,105 +946,105 @@ impl Arguments {
    *  sh_everything: bool             {When true displays all information in the binary}
    * Returns Result<()>
    */
-  // pub fn display_data(&self, bytes: Vec<u8>, settings: &mut CmdSettings, sh_everything: bool) -> goblin::error::Result<()> {
-  //   Self::load_config_file(settings).unwrap();
-  //   let mut bin = BinArgs::default();
+  pub fn display_data(&self, bytes: Vec<u8>, settings: &mut CmdSettings, sh_everything: bool) -> goblin::error::Result<()> {
+    Self::load_config_file(settings).unwrap();
+    let mut bin = BinArgs::default();
 
-  //   if let Some(b) = self.command.clone() {
+    if let Some(b) = self.command.clone() {
 
-  //     match b {
-  //       Action::Bin(args) => { bin = args; }
-  //       _ => {}
-  //     }
-  //   }
+      match b {
+        Action::Bin(args) => { bin = args; }
+        _ => {}
+      }
+    }
 
-  //   match Object::parse(&bytes)? {
-  //     Object::Elf(_) => {
-  //       // TODO
-  //     },
+    match Object::parse(&bytes)? {
+      Object::Elf(_) => {
+        // TODO
+      },
       
-  //     Object::PE(pe) => {
-  //       let imports = pe.imports;
-  //       let exports = pe.exports;
-  //       let sections = pe.sections;      
-  //       let dos_header = pe.header.dos_header;
-  //       let coff_header = pe.header.coff_header;
-  //       let optional_header = pe.header.optional_header;
+      Object::PE(pe) => {
+        let imports = pe.imports;
+        let exports = pe.exports;
+        let sections = pe.sections;      
+        let dos_header = pe.header.dos_header;
+        let coff_header = pe.header.coff_header;
+        let optional_header = pe.header.optional_header;
 
-  //       Self::load_config_file(settings).unwrap();
-  //       if sh_everything == true {
-  //         let export_table = get_exports(&exports);
-  //         println!("{export_table}");
+        Self::load_config_file(settings).unwrap();
+        if sh_everything == true {
+          let export_table = get_exports(&exports);
+          println!("{export_table}");
           
-  //         let export_lib_table = get_exported_lib(exports);
-  //         println!("{export_lib_table}");
+          let export_lib_table = get_exported_lib(exports);
+          println!("{export_lib_table}");
 
-  //         let import_table = get_imports(&imports);
-  //         println!("{import_table}");
-  //       }
+          let import_table = get_imports(&imports);
+          println!("{import_table}");
+        }
 
-  //       else {
-  //         if bin.exports == true {
-  //           let export_table = get_exports(&exports);
-  //           println!("{export_table}");
-  //         }
+        else {
+          if bin.exports == true {
+            let export_table = get_exports(&exports);
+            println!("{export_table}");
+          }
 
-  //         if bin.ex_libs == true {
-  //           let export_lib_table = get_exported_lib(exports);
-  //           println!("{export_lib_table}");
-  //         }
+          if bin.ex_libs == true {
+            let export_lib_table = get_exported_lib(exports);
+            println!("{export_lib_table}");
+          }
 
-  //         if bin.imports == true {
-  //           let import_table = get_imports(&imports);
-  //           println!("{import_table}");
-  //         }
+          if bin.imports == true {
+            let import_table = get_imports(&imports);
+            println!("{import_table}");
+          }
 
-  //         if bin.sections == true {
-  //           get_section_data(sections);
-  //         }
+          if bin.sections == true {
+            get_section_data(sections);
+          }
 
-  //         if bin.dos_header == true {
-  //           let dos_header_tb = get_dos_header(dos_header);
-  //           println!("{dos_header_tb}");
-  //         }
+          if bin.dos_header == true {
+            let dos_header_tb = get_dos_header(dos_header);
+            println!("{dos_header_tb}");
+          }
 
-  //         if bin.coff_header == true {
-  //           let coff_header_tb = get_coff_header(coff_header);
-  //           println!("{coff_header_tb}");
-  //         }
+          if bin.coff_header == true {
+            let coff_header_tb = get_coff_header(coff_header);
+            println!("{coff_header_tb}");
+          }
 
-  //         if bin.optional_header == true {
-  //           match get_optional_header(optional_header) {
-  //             Some(table) => {
-  //               println!("{table}");
-  //             }
-  //             None => {
-  //               println!("Could not read header");
-  //             }
-  //           }
-  //         }
+          if bin.optional_header == true {
+            match get_optional_header(optional_header) {
+              Some(table) => {
+                println!("{table}");
+              }
+              None => {
+                println!("Could not read header");
+              }
+            }
+          }
 
-  //         if bin.directories == true {
-  //           match optional_header.clone() {
-  //             Some(h) => {
-  //               let table = get_data_directories(h.data_directories);
-  //               println!("{table}");
-  //             }
-  //             None => {
-  //               println!("Could not read data directories");
-  //             }
-  //           }
-  //         }
-  //       }
-  //     },
+          if bin.directories == true {
+            match optional_header.clone() {
+              Some(h) => {
+                let table = get_data_directories(h.data_directories);
+                println!("{table}");
+              }
+              None => {
+                println!("Could not read data directories");
+              }
+            }
+          }
+        }
+      },
 
-  //     Object::Mach(_) => {},      // TODO
-  //     Object::Archive(_) => {},   // TODO
-  //     Object::Unknown(_) => {}    // TODO
-  //   }
+      Object::Mach(_) => {},      // TODO
+      Object::Archive(_) => {},   // TODO
+      Object::Unknown(_) => {}    // TODO
+    }
 
-  //   Ok(())
-  // }
+    Ok(())
+  }
 
   /**Funtion creates the config file if not already created.
    * Params:
